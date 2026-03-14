@@ -41,19 +41,19 @@ const NewSession = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white max-w-lg w-full rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex items-center justify-center p-6">
+      <div className="bg-white dark:bg-gray-800 max-w-lg w-full rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 transition-colors">
         
         <div className="mb-8">
-          <Link to="/dashboard" className="text-gray-500 hover:text-gray-800 text-sm font-medium mb-4 inline-block">
+          <Link to="/dashboard" className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm font-medium mb-4 inline-block">
             &larr; Back to Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Start New Session</h1>
-          <p className="text-gray-500 mt-1">Set up your workspace for a new track.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Start New Session</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Set up your workspace for a new track.</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6">
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg text-sm mb-6">
             {error}
           </div>
         )}
@@ -61,23 +61,23 @@ const NewSession = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Song Title *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Song Title *</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Midnight Thoughts"
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Beat Source</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat Source</label>
             <select 
               value={beatSource}
               onChange={(e) => setBeatSource(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
             >
               <option value="youtube">YouTube</option>
               <option value="upload">Upload (Coming Soon)</option>
@@ -86,13 +86,13 @@ const NewSession = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Beat URL (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat URL (Optional)</label>
             <input
               type="url"
               value={beatUrl}
               onChange={(e) => setBeatUrl(e.target.value)}
               placeholder="https://youtube.com/..."
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
             />
           </div>
 

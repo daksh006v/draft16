@@ -6,10 +6,12 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import SessionEditor from './pages/SessionEditor';
 import NewSession from './pages/NewSession';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (
-    <Router>
+    <ThemeProvider>
+      <Router>
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -20,6 +22,7 @@ function App() {
         <Route path="/sessions/:id" element={<SessionEditor />} />
       </Routes>
     </Router>
+    </ThemeProvider>
   );
 }
 
