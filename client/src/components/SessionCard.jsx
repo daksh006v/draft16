@@ -14,14 +14,14 @@ const SessionCard = ({ session, onDelete }) => {
   });
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-      <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">{session.title}</h3>
-      <p className="text-sm text-gray-500 mb-6">Created: {formattedDate}</p>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all">
+      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2 truncate">{session.title}</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Created: {formattedDate}</p>
       
       <div className="flex gap-3">
         <Link 
           to={`/sessions/${session._id}`}
-          className="flex-1 text-center bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+          className="flex-1 text-center bg-gray-800 dark:bg-gray-700 text-white py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
         >
           Open
         </Link>

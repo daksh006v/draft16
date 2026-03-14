@@ -17,6 +17,7 @@ Draft16 is a full-stack creative workspace for rappers and lyricists. Users can 
 | Frontend | React 19 (Vite), Tailwind CSS v4, React Router v7, Axios |
 | Backend | Node.js, Express.js v5 |
 | Database | MongoDB Atlas, Mongoose |
+| Uploads | Cloudinary, Multer |
 | Auth | JWT (jsonwebtoken), bcryptjs |
 | Dev Tools | Nodemon, ESLint |
 
@@ -46,10 +47,16 @@ Draft16 is a full-stack creative workspace for rappers and lyricists. Users can 
 
 ### Session Editor
 - Large `textarea` for focused lyric writing
+- **Live Counters:** Real-time word and character count tracking
 - **Auto-Save:** Saves changes automatically 3 seconds after you stop typing
-- Beat source selector (YouTube / External / Upload coming soon)
+- Beat source selector (YouTube / Upload / External)
 - Beat URL input field with live YouTube embed preview
+- **Beat Upload:** Direct upload of MP3/WAV files to Cloudinary with an inline HTML5 audio player
 - Visual save status indicator (Saving... / All changes saved)
+
+### Dark Mode
+- Full system-wide Dark Mode supported via Tailwind CSS v4 custom variants
+- Theme toggle context provider saving user preference to `localStorage`
 
 ### Beat Playback (Step 8)
 - `BeatPlayer.jsx` component parses YouTube URLs using a `extractVideoId()` helper
@@ -138,6 +145,12 @@ All session routes require the `Authorization: Bearer <token>` header.
 | PUT | `/api/sessions/:id` | Update session | Yes |
 | DELETE | `/api/sessions/:id` | Delete session | Yes |
 
+### Upload Routes
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/upload/beat` | Upload MP3/WAV file (`multipart/form-data`) | No |
+
 **Session model fields:**
 ```json
 {
@@ -182,6 +195,9 @@ Create a `.env` file in the `server/` directory:
 ```env
 MONGO_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_jwt_secret_key
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 PORT=5000
 ```
 
@@ -217,7 +233,6 @@ The app will be running at `http://localhost:5173`
 
 ## FUTURE IMPROVEMENTS
 
-- Audio beat file uploads (direct upload support)
 - Voice demo recording in the workspace
 - Real-time collaboration with Socket.io
 
