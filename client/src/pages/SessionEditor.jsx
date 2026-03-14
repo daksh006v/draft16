@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSessionById, updateSession } from '../services/sessionService';
 import { uploadBeat } from '../services/uploadService';
+import { getRhymes } from '../services/rhymeService';
 import BeatPlayer from '../components/BeatPlayer';
+import TextareaAutosize from 'react-textarea-autosize';
 
 const SessionEditor = () => {
   const { id } = useParams();
@@ -19,11 +21,46 @@ const SessionEditor = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [lastSaved, setLastSaved] = useState(false);
   const [error, setError] = useState(null);
+  
   const isFirstLoad = useRef(true);
   const autoSaveTimer = useRef(null);
+  const textareaRef = useRef(null);
 
   const characterCount = lyrics.length;
   const wordCount = lyrics.trim().split(/\s+/).filter(Boolean).length;
+
+  const [rhymes, setRhymes] = useState([]);
+  const [currentWord, setCurrentWord] = useState('');
+  const [isFetchingRhymes, setIsFetchingRhymes] = useState(false);
+  const [rhymeError, setRhymeError] = useState('');
+
+  // Parse sections dynamically from the lyrics text
+  const parsedSections = useMemo(() => {
+    const regex = /^\[(.*?)\]/gm;
+    const sections = [];
+    let match;
+    while ((match = regex.exec(lyrics)) !== null) {
+      sections.push({
+        id: Math.random().toString(36).substring(2, 9),
+        type: match[1],
+        startIndex: match.index
+      });
+    }
+    return sections;
+  }, [lyrics]);
+
+  const [activeSectionId, setActiveSectionId] = useState(null);
+
+  const scrollToSection = (sectionId, startIndex) => {
+    setActiveSectionId(sectionId);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.setSelectionRange(startIndex, startIndex);
+      // Rough estimate to scroll the textarea to make the line visible
+      const linesBefore = lyrics.substring(0, startIndex).split('\n').length;
+      textareaRef.current.scrollTop = (linesBefore - 1) * 28; // approx 28px line height
+    }
+  };
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -97,6 +134,107 @@ const SessionEditor = () => {
     }
   };
 
+  const exportLyrics = () => {
+    const content = `Title: ${title}\n\nLyrics:\n\n${lyrics}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title.trim() ? `${title.trim()}.txt` : 'lyrics.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const insertSection = (type) => {
+    let header = `\n\n[${type}]\n`;
+    if (!lyrics) {
+        header = `[${type}]\n`;
+    }
+    
+    if (textareaRef.current) {
+        const startPos = textareaRef.current.selectionStart;
+        const endPos = textareaRef.current.selectionEnd;
+        const newLyrics = lyrics.substring(0, startPos) + header + lyrics.substring(endPos);
+        setLyrics(newLyrics);
+        
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+                const newPos = startPos + header.length;
+                textareaRef.current.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    } else {
+        setLyrics((prev) => prev ? prev + header : header);
+    }
+  };
+
+  const handleFindRhymes = async () => {
+    if (!textareaRef.current) return;
+    setRhymeError('');
+    
+    const startPos = textareaRef.current.selectionStart;
+    const endPos = textareaRef.current.selectionEnd;
+    
+    if (startPos === endPos) {
+      setRhymeError('Select a word to find rhymes.');
+      setRhymes([]);
+      setCurrentWord('');
+      return;
+    }
+
+    const selectedWord = lyrics.substring(startPos, endPos).trim();
+    
+    if (!selectedWord || selectedWord.includes(' ')) {
+        setRhymeError('Please select a single word.');
+        setRhymes([]);
+        setCurrentWord('');
+        return;
+    }
+
+    setIsFetchingRhymes(true);
+    setCurrentWord(selectedWord);
+    
+    try {
+      const fetchedRhymes = await getRhymes(selectedWord.toLowerCase());
+      setRhymes(fetchedRhymes);
+      if (fetchedRhymes.length === 0) {
+          setRhymeError(`No rhymes found for "${selectedWord}".`);
+      }
+    } catch (e) {
+      setRhymeError('Error fetching rhymes.');
+      setRhymes([]);
+    } finally {
+      setIsFetchingRhymes(false);
+    }
+  };
+
+  const handleRhymeClick = (rhymeWord) => {
+    if (!textareaRef.current) return;
+    
+    const startPos = textareaRef.current.selectionStart;
+    const endPos = textareaRef.current.selectionEnd;
+    
+    // Only proceed if there is an active text selection matching the searched word
+    if (startPos !== endPos) {
+      const textBeforeSelection = lyrics.substring(0, startPos);
+      const textAfterSelection = lyrics.substring(endPos);
+      
+      const newLyrics = textBeforeSelection + rhymeWord + textAfterSelection;
+      setLyrics(newLyrics);
+      
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newPos = startPos + rhymeWord.length;
+          textareaRef.current.setSelectionRange(newPos, newPos);
+        }
+      }, 0);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-gray-500">Loading session...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
@@ -105,7 +243,7 @@ const SessionEditor = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors p-6 md:p-10">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header Actions */}
         <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
@@ -115,14 +253,22 @@ const SessionEditor = () => {
           >
             &larr; Back to Dashboard
           </button>
-          <button 
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-6 py-2 rounded-lg font-medium text-white transition-colors
-              ${saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-          >
-            {saving ? 'Saving...' : 'Save Session'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportLyrics}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors"
+            >
+              Export Lyrics
+            </button>
+            <button 
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-6 py-2 rounded-lg font-medium text-white transition-colors
+                ${saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {saving ? 'Saving...' : 'Save Session'}
+            </button>
+          </div>
         </div>
 
         {/* Editor Main Content */}
@@ -192,22 +338,112 @@ const SessionEditor = () => {
           </div>
 
           {/* Lyrics Editor (Workspace) */}
-          <div className="p-6 h-[60vh] flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lyrics</label>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
-              </span>
+          <div className="p-6 flex flex-col md:grid md:grid-cols-[220px_1fr] gap-6">
+            
+            {/* Section Navigator (Left Column on Desktop, Top on Mobile) */}
+            <div className="md:border-r border-gray-100 dark:border-gray-700 md:pr-4 flex flex-col gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Navigator</label>
+              <div className="overflow-y-auto space-y-1 mb-4">
+                {parsedSections.map(section => (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToSection(section.id, section.startIndex)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeSectionId === section.id 
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' 
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {section.type}
+                  </button>
+                ))}
+                {parsedSections.length === 0 && (
+                  <div className="text-gray-400 text-sm italic px-2">No sections added yet.</div>
+                )}
+              </div>
+              <div className="text-sm text-gray-500 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <div className="mb-4">
+                  <button 
+                    onClick={handleFindRhymes}
+                    className="w-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium py-2 rounded border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                  >
+                    Find Rhymes
+                  </button>
+                  
+                  {rhymeError && (
+                    <div className="text-xs text-red-500 mt-2">{rhymeError}</div>
+                  )}
+                </div>
+                
+                {currentWord && !rhymeError && (
+                  <div className="mt-3 mb-4 space-y-2">
+                    <div className="text-xs text-gray-400">Rhymes for: <span className="font-semibold text-gray-600 dark:text-gray-300">{currentWord}</span></div>
+                    {isFetchingRhymes ? (
+                      <div className="text-xs text-gray-400">Loading...</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {rhymes.map(r => (
+                          <button
+                            key={r}
+                            onMouseDown={(e) => {
+                              // Prevent input blur so selectionStart/selectionEnd don't reset
+                              e.preventDefault(); 
+                            }}
+                            onClick={() => handleRhymeClick(r)}
+                            className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xs text-gray-800 dark:text-gray-200"
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="mt-4">Words: {wordCount}</div>
+                <div>Characters: {characterCount}</div>
+              </div>
             </div>
-            <textarea
-              value={lyrics}
-              onChange={(e) => setLyrics(e.target.value)}
-              placeholder="Start writing some bars..."
-              className="w-full flex-1 p-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-lg font-mono leading-relaxed bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
-            />
-            <div className="text-sm text-gray-500 mt-2 flex justify-between">
-              <span>Words: {wordCount} | Characters: {characterCount}</span>
+
+            {/* Existing Sections Workspace (Right Column) */}
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Editor</label>
+                <div className="flex items-center gap-4">
+                  <select 
+                    className="bg-gray-100 dark:bg-gray-700 text-sm p-2 rounded outline-none text-gray-800 dark:text-gray-200"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        insertSection(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>+ Add Section</option>
+                    <option value="Hook">Hook</option>
+                    <option value="Verse">Verse</option>
+                    <option value="Bridge">Bridge</option>
+                    <option value="Intro">Intro</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-4 flex flex-col">
+                <TextareaAutosize
+                  ref={textareaRef}
+                  value={lyrics}
+                  onChange={(e) => setLyrics(e.target.value)}
+                  placeholder="Start writing some bars... Use [Hook] or [Verse] to create sections."
+                  minRows={15}
+                  className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-base font-mono leading-relaxed bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
+                />
+              </div>
             </div>
+            
           </div>
 
         </div>
