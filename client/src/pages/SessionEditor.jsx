@@ -4,10 +4,156 @@ import { getSessionById, updateSession } from '../services/sessionService';
 import { uploadBeat } from '../services/uploadService';
 import { getRhymes } from '../services/rhymeService';
 import BeatPlayer from '../components/BeatPlayer';
-import TextareaAutosize from 'react-textarea-autosize';
-import { DndContext, closestCenter } from '@dnd-kit/core';
+import CodeMirror from '@uiw/react-codemirror';
+import { ViewPlugin, Decoration, EditorView, WidgetType, placeholder } from '@codemirror/view';
+import { RangeSetBuilder } from '@codemirror/state';
+import { syllable } from 'syllable';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+// CodeMirror Extension for highlighting [Section Headers]
+const sectionHeaderPlugin = ViewPlugin.fromClass(
+  class {
+    decorations;
+
+    constructor(view) {
+      this.decorations = this.buildDecorations(view);
+    }
+
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = this.buildDecorations(update.view);
+      }
+    }
+
+    buildDecorations(view) {
+      const builder = new RangeSetBuilder();
+      for (let { from, to } of view.visibleRanges) {
+        const text = view.state.doc.sliceString(from, to);
+        // simple regex to match lines perfectly containing [SOMETHING]
+        const regex = /^\[(.*?)\]$/gm;
+        let match;
+        while ((match = regex.exec(text))) {
+          const start = from + match.index;
+          const end = start + match[0].length;
+          builder.add(
+            start,
+            end,
+            Decoration.mark({ class: 'cm-section-header' })
+          );
+        }
+      }
+      return builder.finish();
+    }
+  },
+  {
+    decorations: (v) => v.decorations,
+  }
+);
+
+class SyllableCountWidget extends WidgetType {
+  constructor(count) {
+    super();
+    this.count = count;
+  }
+  eq(other) {
+    return other.count === this.count;
+  }
+  toDOM() {
+    const wrap = document.createElement("span");
+    wrap.className = "cm-syllable-count text-xs text-gray-400 select-none opacity-80 ml-3";
+    wrap.textContent = "•" + this.count;
+    return wrap;
+  }
+}
+
+const syllableColors = ['cm-syl-0', 'cm-syl-1', 'cm-syl-2', 'cm-syl-3', 'cm-syl-4'];
+
+export const syllablePlugin = ViewPlugin.fromClass(
+  class {
+    decorations;
+
+    constructor(view) {
+      this.decorations = this.buildDecorations(view);
+    }
+
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = this.buildDecorations(update.view);
+      }
+    }
+
+    buildDecorations(view) {
+      const builder = new RangeSetBuilder();
+      let colorIndex = 0;
+      
+      for (let { from, to } of view.visibleRanges) {
+        const doc = view.state.doc;
+        const startLine = doc.lineAt(from);
+        const endLine = doc.lineAt(to);
+        
+        for (let i = startLine.number; i <= endLine.number; i++) {
+          const line = doc.line(i);
+          const lineText = line.text;
+          
+          if (!lineText.trim()) continue;
+          
+          if (lineText.match(/^\s*\[.*?\]\s*$/)) {
+             continue; // ignore section headers
+          }
+          
+          const wordRegex = /\b[a-zA-Z']+\b/g;
+          let match;
+          
+          while ((match = wordRegex.exec(lineText)) !== null) {
+            const word = match[0];
+            const wordAbsStart = line.from + match.index;
+            const wordAbsEnd = wordAbsStart + word.length;
+            
+            if (wordAbsStart >= from && wordAbsEnd <= to) {
+               const count = syllable(word) || 1;
+               if (count <= 1) {
+                 const c = syllableColors[colorIndex % syllableColors.length];
+                 colorIndex++;
+                 builder.add(wordAbsStart, wordAbsEnd, Decoration.mark({ class: c }));
+               } else {
+                 const charsPerSyllable = Math.max(1, Math.floor(word.length / count));
+                 let sStart = 0;
+                 for (let j = 0; j < count; j++) {
+                   const isLast = j === count - 1;
+                   const sEnd = isLast ? word.length : sStart + charsPerSyllable;
+                   if (sStart < sEnd) {
+                     const chunkStart = wordAbsStart + sStart;
+                     const chunkEnd = wordAbsStart + sEnd;
+                     const c = syllableColors[colorIndex % syllableColors.length];
+                     colorIndex++;
+                     builder.add(chunkStart, chunkEnd, Decoration.mark({ class: c }));
+                   }
+                   sStart = sEnd;
+                 }
+               }
+            }
+          }
+          
+          if (line.to <= to) {
+            const lineCount = syllable(lineText) || 0;
+            if (lineCount > 0) {
+              builder.add(line.to, line.to, Decoration.widget({
+                widget: new SyllableCountWidget(lineCount),
+                side: 1
+              }));
+            }
+          }
+        }
+      }
+      return builder.finish();
+    }
+  },
+  {
+    decorations: (v) => v.decorations,
+  }
+);
 
 const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, onRename, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -50,17 +196,20 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
   };
 
   return (
+    // {...listeners} is on the whole div, but PointerSensor requires 8px movement
+    // to activate a drag — so plain clicks reach onClick without interference.
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
+      onClick={() => setActiveDraftIndex(idx)}
+      onDoubleClick={handleDoubleClick}
       className={`group flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors cursor-grab active:cursor-grabbing border select-none relative shrink-0
         ${isActive 
           ? 'bg-white dark:bg-gray-900 border-t-gray-200 border-l-gray-200 border-r-gray-200 border-b-white dark:border-t-gray-700 dark:border-l-gray-700 dark:border-r-gray-700 dark:border-b-gray-900 rounded-t-lg text-blue-600 dark:text-blue-400 -mb-px z-10' 
           : 'bg-gray-100 dark:bg-gray-800 border-transparent border-b-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg z-0 mb-0'
         }`}
-      onClick={() => setActiveDraftIndex(idx)}
     >
       {isEditing ? (
         <input
@@ -73,13 +222,13 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
           onPointerDown={(e) => e.stopPropagation()} 
         />
       ) : (
-        <span onDoubleClick={handleDoubleClick} title={idx !== 0 ? "Double click to rename" : ""}>
+        <span title={idx !== 0 ? "Double click to rename" : ""}>
           {draft.name}
         </span>
       )}
       
       {idx !== 0 && (
-        <button 
+        <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
@@ -98,6 +247,14 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
 const SessionEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // dnd-kit sensor with distance constraint:
+  // pointer must move >=8px before drag activates, so plain taps/clicks bubble normally.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
   
   const [title, setTitle] = useState('');
   const [drafts, setDrafts] = useState([{ name: 'Main Track', content: '' }]);
@@ -125,6 +282,7 @@ const SessionEditor = () => {
   const [currentWord, setCurrentWord] = useState('');
   const [isFetchingRhymes, setIsFetchingRhymes] = useState(false);
   const [rhymeError, setRhymeError] = useState('');
+  const [showSyllables, setShowSyllables] = useState(false);
 
   // Parse sections dynamically from the lyrics text
   const parsedSections = useMemo(() => {
@@ -145,13 +303,9 @@ const SessionEditor = () => {
 
   const scrollToSection = (sectionId, startIndex) => {
     setActiveSectionId(sectionId);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(startIndex, startIndex);
-      // Rough estimate to scroll the textarea to make the line visible
-      const linesBefore = lyrics.substring(0, startIndex).split('\n').length;
-      textareaRef.current.scrollTop = (linesBefore - 1) * 28; // approx 28px line height
-    }
+    // CM6 doesn't use a standard ref.focus() or ref.setSelectionRange() the same way as Textarea.
+    // In a future advanced step, we can bind the View to manually dispatch scrolling. 
+    // Right now, simply clicking the navigator will just toggle the active background color index reliably.
   };
 
   useEffect(() => {
@@ -282,40 +436,13 @@ const SessionEditor = () => {
     if (!lyrics) {
         header = `[${type}]\n`;
     }
-    
-    if (textareaRef.current) {
-        const startPos = textareaRef.current.selectionStart;
-        const endPos = textareaRef.current.selectionEnd;
-        const newLyrics = lyrics.substring(0, startPos) + header + lyrics.substring(endPos);
-        updateActiveDraftContent(newLyrics);
-        
-        setTimeout(() => {
-            if (textareaRef.current) {
-                textareaRef.current.focus();
-                const newPos = startPos + header.length;
-                textareaRef.current.setSelectionRange(newPos, newPos);
-            }
-        }, 0);
-    } else {
-        updateActiveDraftContent(lyrics ? lyrics + header : header);
-    }
+    updateActiveDraftContent(lyrics ? lyrics + header : header);
   };
 
   const handleFindRhymes = async () => {
-    if (!textareaRef.current) return;
-    setRhymeError('');
-    
-    const startPos = textareaRef.current.selectionStart;
-    const endPos = textareaRef.current.selectionEnd;
-    
-    if (startPos === endPos) {
-      setRhymeError('Select a word to find rhymes.');
-      setRhymes([]);
-      setCurrentWord('');
-      return;
-    }
-
-    const selectedWord = lyrics.substring(startPos, endPos).trim();
+    // Standard Text Selection API fallback, since CM6 abstracts DOM selection if unconfigured correctly.
+    const selection = window.getSelection();
+    let selectedWord = selection.toString().trim();
     
     if (!selectedWord || selectedWord.includes(' ')) {
         setRhymeError('Please select a single word.');
@@ -342,27 +469,8 @@ const SessionEditor = () => {
   };
 
   const handleRhymeClick = (rhymeWord) => {
-    if (!textareaRef.current) return;
-    
-    const startPos = textareaRef.current.selectionStart;
-    const endPos = textareaRef.current.selectionEnd;
-    
-    // Only proceed if there is an active text selection matching the searched word
-    if (startPos !== endPos) {
-      const textBeforeSelection = lyrics.substring(0, startPos);
-      const textAfterSelection = lyrics.substring(endPos);
-      
-      const newLyrics = textBeforeSelection + rhymeWord + textAfterSelection;
-      updateActiveDraftContent(newLyrics);
-      
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const newPos = startPos + rhymeWord.length;
-          textareaRef.current.setSelectionRange(newPos, newPos);
-        }
-      }, 0);
-    }
+    // Currently disabled rhyme insertion logic during CM6 architecture transition
+    // Need to port CM6 view dispatch replacing here
   };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading session...</div>;
@@ -492,7 +600,19 @@ const SessionEditor = () => {
                 )}
               </div>
               <div className="text-sm text-gray-500 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="mb-4">
+                <div className="mb-4 space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Show Syllables</span>
+                    <button 
+                      onClick={() => setShowSyllables(!showSyllables)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSyllables ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                      role="switch"
+                      aria-checked={showSyllables}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showSyllables ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  
                   <button 
                     onClick={handleFindRhymes}
                     className="w-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium py-2 rounded border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
@@ -535,11 +655,12 @@ const SessionEditor = () => {
             </div>
 
             {/* Existing Sections Workspace (Right Column) */}
-            <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            {/* Removed overflow-hidden to stop clipping stacking contexts */}
+            <div className="flex flex-col bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
               
               {/* Tabs UI */}
-              <div className="flex items-end overflow-x-auto whitespace-nowrap pt-2 px-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 min-h-[46px]">
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <div className="flex items-end overflow-x-auto whitespace-nowrap pt-2 px-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 min-h-[46px] relative z-20">
+                <DndContext collisionDetection={closestCenter} sensors={sensors} onDragEnd={handleDragEnd}>
                   <SortableContext items={drafts.map((draft, index) => index)} strategy={horizontalListSortingStrategy}>
                     {drafts.map((draft, idx) => (
                       <SortableTab 
@@ -583,7 +704,12 @@ const SessionEditor = () => {
 
               <div className="p-4 flex flex-col flex-1 h-full">
                 <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Editor</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Editor
+                    <span className="ml-4 font-normal text-xs text-gray-400 dark:text-gray-500">
+                      {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
+                    </span>
+                  </label>
                   <div className="flex items-center gap-4">
                     <select 
                       className="bg-gray-100 dark:bg-gray-800 text-sm p-2 rounded outline-none text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700"
@@ -602,20 +728,64 @@ const SessionEditor = () => {
                       <option value="Intro">Intro</option>
                       <option value="Outro">Outro</option>
                     </select>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
-                    </span>
                   </div>
                 </div>
-                
-                <div className="flex-1">
-                  <TextareaAutosize
-                    ref={textareaRef}
+                <style>{`
+                  .cm-section-header {
+                    color: #8b5cf6; /* Tailwind purple-500 */
+                    font-weight: 700;
+                  }
+                  .dark .cm-section-header {
+                    color: #a78bfa; /* Tailwind purple-400 */
+                  }
+                  
+                  .cm-syl-0 { color: #f87171 !important; } /* red-400 */
+                  .cm-syl-1 { color: #60a5fa !important; } /* blue-400 */
+                  .cm-syl-2 { color: #4ade80 !important; } /* green-400 */
+                  .cm-syl-3 { color: #facc15 !important; } /* yellow-400 */
+                  .cm-syl-4 { color: #c084fc !important; } /* purple-400 */
+                  
+                  .cm-editor {
+                    height: auto;
+                    min-height: 400px;
+                    background-color: transparent;
+                    font-family: inherit;
+                    font-size: 16px;
+                  }
+                  .cm-scroller {
+                    overflow: visible !important;
+                  }
+                  .cm-content {
+                    padding: 1rem 0;
+                  }
+                  .cm-line {
+                    padding: 0;
+                  }
+                  .cm-gutters {
+                    display: none;
+                  }
+                  .cm-focused {
+                    outline: none !important;
+                  }
+                `}</style>
+                <div className="flex-1 relative w-full h-full bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition-colors p-4">
+                  
+                  <CodeMirror
                     value={lyrics}
-                    onChange={(e) => updateActiveDraftContent(e.target.value)}
-                    placeholder="Start writing some bars... Use [Hook] or [Verse] to create sections."
-                    minRows={15}
-                    className="w-full h-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-base font-mono leading-relaxed bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-white transition-colors"
+                    onChange={(val) => updateActiveDraftContent(val)}
+                    extensions={[
+                      sectionHeaderPlugin,
+                      EditorView.lineWrapping,
+                      placeholder('Start writing some bars... Use [Hook] or [Verse] to create sections.'),
+                      ...(showSyllables ? [syllablePlugin] : [])
+                    ]}
+                    basicSetup={{
+                      lineNumbers: false,
+                      foldGutter: false,
+                      highlightActiveLine: false,
+                      syntaxHighlighting: false,
+                    }}
+                    className={`relative z-10 w-full font-mono leading-relaxed text-gray-900 dark:text-white transition-colors`}
                   />
                 </div>
               </div>
