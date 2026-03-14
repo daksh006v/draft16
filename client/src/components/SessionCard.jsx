@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom';
 
-const SessionCard = ({ session }) => {
+const SessionCard = ({ session, onDelete }) => {
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this session?')) {
+      onDelete(session._id);
+    }
+  };
   const formattedDate = new Date(session.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -20,7 +26,8 @@ const SessionCard = ({ session }) => {
           Open
         </Link>
         <button 
-          className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+          onClick={handleDelete}
+          className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
         >
           Delete
         </button>

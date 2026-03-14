@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSessionById, updateSession } from '../services/sessionService';
 import BeatPlayer from '../components/BeatPlayer';
@@ -14,7 +14,11 @@ const SessionEditor = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(false);
   const [error, setError] = useState(null);
+  const isFirstLoad = useRef(true);
+  const autoSaveTimer = useRef(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -34,17 +38,37 @@ const SessionEditor = () => {
     fetchSession();
   }, [id]);
 
+  // Auto-save: debounce 3s after user stops typing
+  useEffect(() => {
+    if (isFirstLoad.current) return;
+
+    setLastSaved(false);
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      autoSaveSession();
+    }, 3000);
+
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [lyrics, title, beatSource, beatUrl]);
+
+  const autoSaveSession = async () => {
+    try {
+      setIsSaving(true);
+      await updateSession(id, { title, lyrics, beatSource, beatUrl });
+      setIsSaving(false);
+      setLastSaved(true);
+    } catch {
+      setIsSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
-      await updateSession(id, {
-        title,
-        lyrics,
-        beatSource,
-        beatUrl
-      });
+      clearTimeout(autoSaveTimer.current);
+      await updateSession(id, { title, lyrics, beatSource, beatUrl });
       setSaving(false);
-      // Optional: Add a success toast message here
+      setLastSaved(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Error saving session');
       setSaving(false);
@@ -53,6 +77,9 @@ const SessionEditor = () => {
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading session...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+
+  // Mark first load complete after initial data is populated
+  if (!loading && isFirstLoad.current) isFirstLoad.current = false;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10">
@@ -123,13 +150,18 @@ const SessionEditor = () => {
           </div>
 
           {/* Lyrics Editor (Workspace) */}
-          <div className="p-6 h-[60vh]">
-            <label className="block text-sm font-medium text-gray-700 mb-2 invisible">Lyrics</label>
+          <div className="p-6 h-[60vh] flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">Lyrics</label>
+              <span className="text-xs text-gray-400">
+                {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
+              </span>
+            </div>
             <textarea
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               placeholder="Start writing some bars..."
-              className="w-full h-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-lg font-mono leading-relaxed"
+              className="w-full flex-1 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-lg font-mono leading-relaxed"
             />
           </div>
 

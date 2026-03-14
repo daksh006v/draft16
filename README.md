@@ -36,11 +36,20 @@ Draft16 is a full-stack creative workspace for rappers and lyricists. Users can 
 - **Update** session title, lyrics, and beat URL in the session editor
 - **Delete** sessions from the dashboard
 
+### Dashboard
+- **View** all sessions in a responsive card grid
+- **Search** sessions dynamically by title
+- **Sort** sessions by Newest, Oldest, A–Z, and Z–A
+- **Delete** sessions directly from the dashboard without page reloads
+- **Open** any session to edit
+- Navigate to create a new session
+
 ### Session Editor
 - Large `textarea` for focused lyric writing
+- **Auto-Save:** Saves changes automatically 3 seconds after you stop typing
 - Beat source selector (YouTube / External / Upload coming soon)
 - Beat URL input field with live YouTube embed preview
-- Save changes button with loading state feedback
+- Visual save status indicator (Saving... / All changes saved)
 
 ### Beat Playback (Step 8)
 - `BeatPlayer.jsx` component parses YouTube URLs using a `extractVideoId()` helper
@@ -208,10 +217,8 @@ The app will be running at `http://localhost:5173`
 
 ## FUTURE IMPROVEMENTS
 
-- Autosave lyrics (debounced auto-save on keystroke)
 - Audio beat file uploads (direct upload support)
 - Voice demo recording in the workspace
-- Session search and tag filtering
 - Real-time collaboration with Socket.io
 
 ---
