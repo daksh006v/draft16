@@ -36,3 +36,12 @@ export const createSession = async (data) => {
   });
   return response.data;
 };
+
+export const deleteSession = async (id) => {
+  const response = await api.delete(`/sessions/${id}`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`
+    }
+  });
+  return response.data;
+};
