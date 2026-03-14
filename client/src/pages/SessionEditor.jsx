@@ -5,13 +5,103 @@ import { uploadBeat } from '../services/uploadService';
 import { getRhymes } from '../services/rhymeService';
 import BeatPlayer from '../components/BeatPlayer';
 import TextareaAutosize from 'react-textarea-autosize';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, onRename, onDelete }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(draft.name);
+
+  const isActive = activeDraftIndex === idx;
+
+  const handleDoubleClick = (e) => {
+    e.stopPropagation();
+    if (idx !== 0) {
+      setIsEditing(true);
+      setEditName(draft.name);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      setIsEditing(false);
+      if (editName.trim() && editName.trim() !== draft.name) {
+        onRename(idx, editName.trim());
+      } else {
+        setEditName(draft.name);
+      }
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setEditName(draft.name);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (editName.trim() && editName.trim() !== draft.name) {
+      onRename(idx, editName.trim());
+    } else {
+      setEditName(draft.name);
+    }
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`group flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors cursor-grab active:cursor-grabbing border select-none relative shrink-0
+        ${isActive 
+          ? 'bg-white dark:bg-gray-900 border-t-gray-200 border-l-gray-200 border-r-gray-200 border-b-white dark:border-t-gray-700 dark:border-l-gray-700 dark:border-r-gray-700 dark:border-b-gray-900 rounded-t-lg text-blue-600 dark:text-blue-400 -mb-px z-10' 
+          : 'bg-gray-100 dark:bg-gray-800 border-transparent border-b-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg z-0 mb-0'
+        }`}
+      onClick={() => setActiveDraftIndex(idx)}
+    >
+      {isEditing ? (
+        <input
+          autoFocus
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          className="bg-transparent border-b border-blue-500 outline-none min-w-[60px] max-w-[120px] px-1"
+          onPointerDown={(e) => e.stopPropagation()} 
+        />
+      ) : (
+        <span onDoubleClick={handleDoubleClick} title={idx !== 0 ? "Double click to rename" : ""}>
+          {draft.name}
+        </span>
+      )}
+      
+      {idx !== 0 && (
+        <button 
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(idx);
+          }}
+          className="text-gray-400 hover:text-red-500 ml-1 opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+        >
+          &times;
+        </button>
+      )}
+    </div>
+  );
+};
+
 
 const SessionEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
   const [title, setTitle] = useState('');
-  const [lyrics, setLyrics] = useState('');
+  const [drafts, setDrafts] = useState([{ name: 'Main Track', content: '' }]);
+  const [activeDraftIndex, setActiveDraftIndex] = useState(0);
   const [beatSource, setBeatSource] = useState('youtube');
   const [beatUrl, setBeatUrl] = useState('');
   
@@ -25,6 +115,8 @@ const SessionEditor = () => {
   const isFirstLoad = useRef(true);
   const autoSaveTimer = useRef(null);
   const textareaRef = useRef(null);
+  const currentDraft = drafts[activeDraftIndex] || { content: '' };
+  const lyrics = currentDraft.content;
 
   const characterCount = lyrics.length;
   const wordCount = lyrics.trim().split(/\s+/).filter(Boolean).length;
@@ -67,7 +159,16 @@ const SessionEditor = () => {
       try {
         const data = await getSessionById(id);
         setTitle(data.title || '');
-        setLyrics(data.lyrics || '');
+        
+        // Handle migration gracefully if old session uses lyrics string only
+        if (data.drafts && data.drafts.length > 0) {
+          setDrafts(data.drafts.map(d => ({ ...d, id: d._id || d.id || Math.random().toString(36).substring(2, 9) })));
+        } else if (data.lyrics !== undefined) {
+          setDrafts([{ id: 'draft-main', name: 'Main Track', content: data.lyrics }]);
+        } else {
+          setDrafts([{ id: 'draft-main', name: 'Main Track', content: '' }]);
+        }
+
         setBeatSource(data.beatSource || 'youtube');
         setBeatUrl(data.beatUrl || '');
         setLoading(false);
@@ -91,12 +192,12 @@ const SessionEditor = () => {
     }, 3000);
 
     return () => clearTimeout(autoSaveTimer.current);
-  }, [lyrics, title, beatSource, beatUrl]);
+  }, [drafts, title, beatSource, beatUrl]);
 
   const autoSaveSession = async () => {
     try {
       setIsSaving(true);
-      await updateSession(id, { title, lyrics, beatSource, beatUrl });
+      await updateSession(id, { title, drafts, beatSource, beatUrl });
       setIsSaving(false);
       setLastSaved(true);
     } catch {
@@ -108,7 +209,7 @@ const SessionEditor = () => {
     try {
       setSaving(true);
       clearTimeout(autoSaveTimer.current);
-      await updateSession(id, { title, lyrics, beatSource, beatUrl });
+      await updateSession(id, { title, drafts, beatSource, beatUrl });
       setSaving(false);
       setLastSaved(true);
     } catch (err) {
@@ -147,6 +248,35 @@ const SessionEditor = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setDrafts((items) => {
+      const oldIndex = active.id;
+      const newIndex = over.id;
+      
+      // Keep active tab in sync during reorder
+      if (activeDraftIndex === oldIndex) {
+        setActiveDraftIndex(newIndex);
+      } else if (activeDraftIndex > oldIndex && activeDraftIndex <= newIndex) {
+        setActiveDraftIndex(activeDraftIndex - 1);
+      } else if (activeDraftIndex < oldIndex && activeDraftIndex >= newIndex) {
+        setActiveDraftIndex(activeDraftIndex + 1);
+      }
+      
+      return arrayMove(items, oldIndex, newIndex);
+    });
+  };
+
+  const updateActiveDraftContent = (newContent) => {
+    const newDrafts = [...drafts];
+    if (newDrafts[activeDraftIndex]) {
+        newDrafts[activeDraftIndex].content = newContent;
+        setDrafts(newDrafts);
+    }
+  };
+
   const insertSection = (type) => {
     let header = `\n\n[${type}]\n`;
     if (!lyrics) {
@@ -157,7 +287,7 @@ const SessionEditor = () => {
         const startPos = textareaRef.current.selectionStart;
         const endPos = textareaRef.current.selectionEnd;
         const newLyrics = lyrics.substring(0, startPos) + header + lyrics.substring(endPos);
-        setLyrics(newLyrics);
+        updateActiveDraftContent(newLyrics);
         
         setTimeout(() => {
             if (textareaRef.current) {
@@ -167,7 +297,7 @@ const SessionEditor = () => {
             }
         }, 0);
     } else {
-        setLyrics((prev) => prev ? prev + header : header);
+        updateActiveDraftContent(lyrics ? lyrics + header : header);
     }
   };
 
@@ -223,7 +353,7 @@ const SessionEditor = () => {
       const textAfterSelection = lyrics.substring(endPos);
       
       const newLyrics = textBeforeSelection + rhymeWord + textAfterSelection;
-      setLyrics(newLyrics);
+      updateActiveDraftContent(newLyrics);
       
       setTimeout(() => {
         if (textareaRef.current) {
@@ -405,42 +535,89 @@ const SessionEditor = () => {
             </div>
 
             {/* Existing Sections Workspace (Right Column) */}
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex justify-between items-center mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Editor</label>
-                <div className="flex items-center gap-4">
-                  <select 
-                    className="bg-gray-100 dark:bg-gray-700 text-sm p-2 rounded outline-none text-gray-800 dark:text-gray-200"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        insertSection(e.target.value);
-                        e.target.value = '';
-                      }
-                    }}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>+ Add Section</option>
-                    <option value="Hook">Hook</option>
-                    <option value="Verse">Verse</option>
-                    <option value="Bridge">Bridge</option>
-                    <option value="Intro">Intro</option>
-                    <option value="Outro">Outro</option>
-                  </select>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
-                  </span>
-                </div>
-              </div>
+            <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
               
-              <div className="space-y-4 flex flex-col">
-                <TextareaAutosize
-                  ref={textareaRef}
-                  value={lyrics}
-                  onChange={(e) => setLyrics(e.target.value)}
-                  placeholder="Start writing some bars... Use [Hook] or [Verse] to create sections."
-                  minRows={15}
-                  className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-base font-mono leading-relaxed bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
-                />
+              {/* Tabs UI */}
+              <div className="flex items-end overflow-x-auto whitespace-nowrap pt-2 px-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 min-h-[46px]">
+                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={drafts.map((draft, index) => index)} strategy={horizontalListSortingStrategy}>
+                    {drafts.map((draft, idx) => (
+                      <SortableTab 
+                        key={idx}
+                        id={idx}
+                        draft={draft}
+                        idx={idx}
+                        activeDraftIndex={activeDraftIndex}
+                        setActiveDraftIndex={setActiveDraftIndex}
+                        onRename={(index, newName) => {
+                          const newDrafts = [...drafts];
+                          newDrafts[index].name = newName;
+                          setDrafts(newDrafts);
+                        }}
+                        onDelete={(index) => {
+                          if(confirm(`Are you sure you want to delete '${drafts[index].name}'?`)) {
+                             const newDrafts = drafts.filter((_, idxToRemove) => index !== idxToRemove);
+                             setDrafts(newDrafts);
+                             if (activeDraftIndex === index) {
+                               setActiveDraftIndex(Math.max(0, index - 1));
+                             } else if (activeDraftIndex > index) {
+                               setActiveDraftIndex(activeDraftIndex - 1);
+                             }
+                          }
+                        }}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+                <button 
+                  onClick={() => {
+                    const newDraftName = `Draft ${drafts.length + 1}`;
+                    setDrafts([...drafts, { id: Math.random().toString(36).substring(2, 9), name: newDraftName, content: '' }]);
+                    setActiveDraftIndex(drafts.length);
+                  }}
+                  className="shrink-0 px-3 py-2 mb-px ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                >
+                  + Draft
+                </button>
+              </div>
+
+              <div className="p-4 flex flex-col flex-1 h-full">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Editor</label>
+                  <div className="flex items-center gap-4">
+                    <select 
+                      className="bg-gray-100 dark:bg-gray-800 text-sm p-2 rounded outline-none text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          insertSection(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>+ Add Section</option>
+                      <option value="Hook">Hook</option>
+                      <option value="Verse">Verse</option>
+                      <option value="Bridge">Bridge</option>
+                      <option value="Intro">Intro</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {isSaving ? '● Saving...' : lastSaved ? '✓ All changes saved' : ''}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <TextareaAutosize
+                    ref={textareaRef}
+                    value={lyrics}
+                    onChange={(e) => updateActiveDraftContent(e.target.value)}
+                    placeholder="Start writing some bars... Use [Hook] or [Verse] to create sections."
+                    minRows={15}
+                    className="w-full h-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none text-base font-mono leading-relaxed bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-white transition-colors"
+                  />
+                </div>
               </div>
             </div>
             

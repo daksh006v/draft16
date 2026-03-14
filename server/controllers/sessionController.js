@@ -3,13 +3,18 @@ const Session = require('../models/Session');
 // Create Session
 exports.createSession = async (req, res) => {
   try {
-    const { title, lyrics, beatSource, beatUrl } = req.body;
+    const { title, drafts, beatSource, beatUrl } = req.body;
     const userId = req.user.userId;
+
+    // Initialize with a default draft if none provided
+    const initialDrafts = drafts && drafts.length > 0 ? drafts : [
+      { name: "Main Track", content: "" }
+    ];
 
     const session = await Session.create({
       userId,
       title,
-      lyrics,
+      drafts: initialDrafts,
       beatSource,
       beatUrl
     });
@@ -55,7 +60,7 @@ exports.getSessionById = async (req, res) => {
 // Update Session
 exports.updateSession = async (req, res) => {
   try {
-    const { title, lyrics, beatSource, beatUrl } = req.body;
+    const { title, drafts, beatSource, beatUrl } = req.body;
     const session = await Session.findById(req.params.id);
 
     if (!session) {
@@ -69,7 +74,7 @@ exports.updateSession = async (req, res) => {
 
     // Update fields
     if (title !== undefined) session.title = title;
-    if (lyrics !== undefined) session.lyrics = lyrics;
+    if (drafts !== undefined) session.drafts = drafts;
     if (beatSource !== undefined) session.beatSource = beatSource;
     if (beatUrl !== undefined) session.beatUrl = beatUrl;
 
