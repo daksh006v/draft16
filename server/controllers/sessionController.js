@@ -3,7 +3,7 @@ const Session = require('../models/Session');
 // Create Session
 exports.createSession = async (req, res) => {
   try {
-    const { title, drafts, beatSource, beatUrl } = req.body;
+    const { title, drafts, beatSource, beatUrl, markers } = req.body;
     const userId = req.user.userId;
 
     // Initialize with a default draft if none provided
@@ -16,7 +16,8 @@ exports.createSession = async (req, res) => {
       title,
       drafts: initialDrafts,
       beatSource,
-      beatUrl
+      beatUrl,
+      markers: markers || []
     });
 
     res.status(201).json(session);
@@ -60,7 +61,7 @@ exports.getSessionById = async (req, res) => {
 // Update Session
 exports.updateSession = async (req, res) => {
   try {
-    const { title, drafts, beatSource, beatUrl } = req.body;
+    const { title, drafts, beatSource, beatUrl, markers } = req.body;
     const session = await Session.findById(req.params.id);
 
     if (!session) {
@@ -77,6 +78,7 @@ exports.updateSession = async (req, res) => {
     if (drafts !== undefined) session.drafts = drafts;
     if (beatSource !== undefined) session.beatSource = beatSource;
     if (beatUrl !== undefined) session.beatUrl = beatUrl;
+    if (markers !== undefined) session.markers = markers;
 
     const updatedSession = await session.save();
     res.json(updatedSession);
