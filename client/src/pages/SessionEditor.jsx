@@ -8,6 +8,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { ViewPlugin, Decoration, EditorView, WidgetType, placeholder } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { syllable } from 'syllable';
+import { rhymeSchemePlugin } from '../editor/plugins/rhymeSchemePlugin';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -155,6 +156,105 @@ export const syllablePlugin = ViewPlugin.fromClass(
   }
 );
 
+// CodeMirror Extension for highlighting Rhymes
+const rhymeClasses = ['cm-rhyme-0', 'cm-rhyme-1', 'cm-rhyme-2', 'cm-rhyme-3'];
+
+export const rhymePlugin = ViewPlugin.fromClass(
+  class {
+    decorations;
+
+    constructor(view) {
+      this.decorations = this.buildDecorations(view);
+    }
+
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = this.buildDecorations(update.view);
+      }
+    }
+
+    buildDecorations(view) {
+      const builder = new RangeSetBuilder();
+      
+      for (let { from, to } of view.visibleRanges) {
+        const doc = view.state.doc;
+        const text = doc.sliceString(from, to);
+        const lines = text.split('\n');
+        
+        let words = [];
+        let currentOffset = from;
+        
+        // Pass 1: Collect words and their frequencies in the visible range
+        const rhymeCounts = {};
+        
+        for (let lineText of lines) {
+          if (!lineText.trim() || lineText.match(/^\s*\[.*?\]\s*$/)) {
+            currentOffset += lineText.length + 1; // +1 for the newline
+            continue;
+          }
+          
+          const wordRegex = /\b[a-zA-Z][a-zA-Z']*\b/g;
+          let match;
+          
+          while ((match = wordRegex.exec(lineText)) !== null) {
+            const word = match[0];
+            const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
+            
+            if (cleanWord.length === 0) continue;
+            
+            let rhymeKey = cleanWord;
+            if (cleanWord.length >= 4) {
+              rhymeKey = cleanWord.slice(-3);
+            } else if (cleanWord.length >= 2) {
+              rhymeKey = cleanWord.slice(-2);
+            }
+            
+            if (rhymeCounts[rhymeKey]) {
+              rhymeCounts[rhymeKey]++;
+            } else {
+              rhymeCounts[rhymeKey] = 1;
+            }
+            
+            words.push({
+              key: rhymeKey,
+              start: currentOffset + match.index,
+              end: currentOffset + match.index + word.length
+            });
+          }
+          currentOffset += lineText.length + 1;
+        }
+        
+        // Assign colors only to groups with count >= 2
+        const rhymeGroups = {};
+        let groupCounter = 0;
+        
+        for (const [key, count] of Object.entries(rhymeCounts)) {
+          if (count >= 2) {
+            rhymeGroups[key] = groupCounter;
+            groupCounter++;
+          }
+        }
+        
+        // Pass 2: Add decorations
+        // Sort words by start index to build RangeSet in order
+        words.sort((a, b) => a.start - b.start);
+        
+        for (const word of words) {
+          if (rhymeGroups[word.key] !== undefined) {
+             const classIndex = rhymeGroups[word.key] % rhymeClasses.length;
+             const cssClass = rhymeClasses[classIndex];
+             builder.add(word.start, word.end, Decoration.mark({ class: cssClass }));
+          }
+        }
+      }
+      return builder.finish();
+    }
+  },
+  {
+    decorations: (v) => v.decorations,
+  }
+);
+
 const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, onRename, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -283,6 +383,8 @@ const SessionEditor = () => {
   const [isFetchingRhymes, setIsFetchingRhymes] = useState(false);
   const [rhymeError, setRhymeError] = useState('');
   const [showSyllables, setShowSyllables] = useState(false);
+  const [showRhymes, setShowRhymes] = useState(false);
+  const [showRhymeScheme, setShowRhymeScheme] = useState(false);
 
   // Parse sections dynamically from the lyrics text
   const parsedSections = useMemo(() => {
@@ -601,7 +703,7 @@ const SessionEditor = () => {
               </div>
               <div className="text-sm text-gray-500 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="mb-4 space-y-3">
-                  <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center justify-between px-1 border-b border-gray-100 dark:border-gray-700 pb-3">
                     <span className="font-medium text-gray-700 dark:text-gray-300">Show Syllables</span>
                     <button 
                       onClick={() => setShowSyllables(!showSyllables)}
@@ -610,6 +712,30 @@ const SessionEditor = () => {
                       aria-checked={showSyllables}
                     >
                       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showSyllables ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between px-1 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Show Rhymes</span>
+                    <button 
+                      onClick={() => setShowRhymes(!showRhymes)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showRhymes ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                      role="switch"
+                      aria-checked={showRhymes}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showRhymes ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between px-1">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Show Rhyme Scheme</span>
+                    <button 
+                      onClick={() => setShowRhymeScheme(!showRhymeScheme)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showRhymeScheme ? 'bg-teal-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                      role="switch"
+                      aria-checked={showRhymeScheme}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showRhymeScheme ? 'translate-x-4' : 'translate-x-0'}`} />
                     </button>
                   </div>
                   
@@ -745,6 +871,21 @@ const SessionEditor = () => {
                   .cm-syl-3 { color: #facc15 !important; } /* yellow-400 */
                   .cm-syl-4 { color: #c084fc !important; } /* purple-400 */
                   
+                  .cm-rhyme-0 { text-decoration: underline 2px #ef4444 !important; } /* red-500 */
+                  .cm-rhyme-1 { text-decoration: underline 2px #3b82f6 !important; } /* blue-500 */
+                  .cm-rhyme-2 { text-decoration: underline 2px #10b981 !important; } /* emerald-500 */
+                  .cm-rhyme-3 { text-decoration: underline 2px #eab308 !important; } /* yellow-500 */
+                  
+                  .cm-rhyme-scheme {
+                    font-size: 12px;
+                    color: #9ca3af;
+                    margin-left: 8px;
+                    font-weight: 600;
+                  }
+                  .dark .cm-rhyme-scheme {
+                    color: #6b7280;
+                  }
+                  
                   .cm-editor {
                     height: auto;
                     min-height: 400px;
@@ -777,7 +918,9 @@ const SessionEditor = () => {
                       sectionHeaderPlugin,
                       EditorView.lineWrapping,
                       placeholder('Start writing some bars... Use [Hook] or [Verse] to create sections.'),
-                      ...(showSyllables ? [syllablePlugin] : [])
+                      ...(showSyllables ? [syllablePlugin] : []),
+                      ...(showRhymes ? [rhymePlugin] : []),
+                      ...(showRhymeScheme ? [rhymeSchemePlugin] : [])
                     ]}
                     basicSetup={{
                       lineNumbers: false,
