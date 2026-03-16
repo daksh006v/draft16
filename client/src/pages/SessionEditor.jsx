@@ -14,7 +14,7 @@ import { SortableContext, useSortable, arrayMove, horizontalListSortingStrategy 
 import { CSS } from '@dnd-kit/utilities';
 
 // CodeMirror Extension for highlighting [Section Headers]
-const sectionHeaderPlugin = ViewPlugin.fromClass(
+export const getSectionHeaderPlugin = (activeType) => ViewPlugin.fromClass(
   class {
     decorations;
 
@@ -38,10 +38,13 @@ const sectionHeaderPlugin = ViewPlugin.fromClass(
         while ((match = regex.exec(text))) {
           const start = from + match.index;
           const end = start + match[0].length;
+          const type = match[1];
+          const isActive = activeType && type.toLowerCase() === activeType.toLowerCase();
+          
           builder.add(
             start,
             end,
-            Decoration.mark({ class: 'cm-section-header' })
+            Decoration.mark({ class: isActive ? 'cm-section-header cm-active-section' : 'cm-section-header' })
           );
         }
       }
@@ -362,6 +365,10 @@ const SessionEditor = () => {
   const [beatSource, setBeatSource] = useState('youtube');
   const [beatUrl, setBeatUrl] = useState('');
   
+  const [markers, setMarkers] = useState([]);
+  const [newMarkerTime, setNewMarkerTime] = useState('');
+  const [newMarkerLabel, setNewMarkerLabel] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -372,6 +379,9 @@ const SessionEditor = () => {
   const isFirstLoad = useRef(true);
   const autoSaveTimer = useRef(null);
   const textareaRef = useRef(null);
+  const beatPlayerRef = useRef(null);
+  const editorRef = useRef(null);
+  
   const currentDraft = drafts[activeDraftIndex] || { content: '' };
   const lyrics = currentDraft.content;
 
@@ -402,12 +412,59 @@ const SessionEditor = () => {
   }, [lyrics]);
 
   const [activeSectionId, setActiveSectionId] = useState(null);
+  const [activeSectionType, setActiveSectionType] = useState(null);
 
-  const scrollToSection = (sectionId, startIndex) => {
-    setActiveSectionId(sectionId);
-    // CM6 doesn't use a standard ref.focus() or ref.setSelectionRange() the same way as Textarea.
-    // In a future advanced step, we can bind the View to manually dispatch scrolling. 
-    // Right now, simply clicking the navigator will just toggle the active background color index reliably.
+  const normalize = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+  };
+
+  // Extract section positions directly from CodeMirror's document — guarantees
+  // startIndex values are real CM6 positions and not regex indices on raw text.
+  const extractSections = (view) => {
+    const sections = [];
+    if (!view) return sections;
+    const doc = view.state.doc;
+    for (let i = 1; i <= doc.lines; i++) {
+      const line = doc.line(i);
+      const match = line.text.match(/^\[(.*?)\]/);
+      if (match) {
+        sections.push({ type: match[1], startIndex: line.from });
+      }
+    }
+    return sections;
+  };
+
+  const navigateToSection = (label, time) => {
+    // 1. Seek beat if time is provided
+    if (time !== undefined && time !== null) {
+      handleSeekPlayer(time);
+    }
+
+    if (!label) return;
+
+    // 2. Compute real CM6 positions from the live document
+    const sections = extractSections(editorRef.current);
+    console.log("sections from CM doc:", sections);
+
+    const section = sections.find(s => normalize(s.type) === normalize(label));
+    console.log("matched section:", section);
+
+    if (!section) return;
+
+    if (!editorRef.current) {
+      console.warn("editorRef not set");
+      return;
+    }
+
+    // 3. Move selection to that position — CM6 will then scroll it into view
+    editorRef.current.dispatch({
+      selection: { anchor: section.startIndex },
+      effects: EditorView.scrollIntoView(section.startIndex, { y: "center", yMargin: 40 })
+    });
+
+    setActiveSectionType(section.type);
+    setTimeout(() => setActiveSectionType(null), 1500);
   };
 
   useEffect(() => {
@@ -427,6 +484,7 @@ const SessionEditor = () => {
 
         setBeatSource(data.beatSource || 'youtube');
         setBeatUrl(data.beatUrl || '');
+        setMarkers(data.markers || []);
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.message || 'Error loading session');
@@ -448,12 +506,12 @@ const SessionEditor = () => {
     }, 3000);
 
     return () => clearTimeout(autoSaveTimer.current);
-  }, [drafts, title, beatSource, beatUrl]);
+  }, [drafts, title, beatSource, beatUrl, markers]);
 
   const autoSaveSession = async () => {
     try {
       setIsSaving(true);
-      await updateSession(id, { title, drafts, beatSource, beatUrl });
+      await updateSession(id, { title, drafts, beatSource, beatUrl, markers });
       setIsSaving(false);
       setLastSaved(true);
     } catch {
@@ -465,7 +523,7 @@ const SessionEditor = () => {
     try {
       setSaving(true);
       clearTimeout(autoSaveTimer.current);
-      await updateSession(id, { title, drafts, beatSource, beatUrl });
+      await updateSession(id, { title, drafts, beatSource, beatUrl, markers });
       setSaving(false);
       setLastSaved(true);
     } catch (err) {
@@ -575,6 +633,44 @@ const SessionEditor = () => {
     // Need to port CM6 view dispatch replacing here
   };
 
+  const parseTime = (timeStr) => {
+    if (!timeStr.includes(':')) return parseInt(timeStr) || 0;
+    const [m, s] = timeStr.split(':').map(Number);
+    return (m || 0) * 60 + (s || 0);
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleAddMarker = (e) => {
+    e.preventDefault();
+    if (!newMarkerTime || !newMarkerLabel) return;
+    const timeInSeconds = parseTime(newMarkerTime);
+    const newMarkers = [...markers, { time: timeInSeconds, label: newMarkerLabel }].sort((a, b) => a.time - b.time);
+    setMarkers(newMarkers);
+    setNewMarkerTime('');
+    setNewMarkerLabel('');
+  };
+
+  const handleDeleteMarker = (e, index) => {
+    e.stopPropagation();
+    const newMarkers = markers.filter((_, i) => i !== index);
+    setMarkers(newMarkers);
+  };
+
+  const handleSeekPlayer = (time) => {
+    if (beatPlayerRef.current) {
+      if (typeof beatPlayerRef.current.seekTo === 'function') {
+        beatPlayerRef.current.seekTo(time);
+      } else if (beatPlayerRef.current.currentTime !== undefined) {
+        beatPlayerRef.current.currentTime = time;
+      }
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-gray-500">Loading session...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
@@ -670,9 +766,9 @@ const SessionEditor = () => {
               </div>
             </div>
 
-            {beatSource === 'youtube' && <BeatPlayer beatSource={beatSource} beatUrl={beatUrl} />}
+            {beatSource === 'youtube' && <BeatPlayer ref={beatPlayerRef} beatSource={beatSource} beatUrl={beatUrl} />}
             {beatSource === 'upload' && beatUrl && (
-              <audio controls src={beatUrl} className="w-full h-12 rounded-lg outline-none mt-2" />
+              <audio ref={beatPlayerRef} controls src={beatUrl} className="w-full h-12 rounded-lg outline-none mt-2" />
             )}
 
           </div>
@@ -683,11 +779,13 @@ const SessionEditor = () => {
             {/* Section Navigator (Left Column on Desktop, Top on Mobile) */}
             <div className="md:border-r border-gray-100 dark:border-gray-700 md:pr-4 flex flex-col gap-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Navigator</label>
-              <div className="overflow-y-auto space-y-1 mb-4">
+              
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 mt-2">Sections</div>
+              <div className="overflow-y-auto space-y-1 mb-4 max-h-40">
                 {parsedSections.map(section => (
                   <button
                     key={section.id}
-                    onClick={() => scrollToSection(section.id, section.startIndex)}
+                    onClick={() => navigateToSection(section.type)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       activeSectionId === section.id 
                         ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' 
@@ -701,6 +799,69 @@ const SessionEditor = () => {
                   <div className="text-gray-400 text-sm italic px-2">No sections added yet.</div>
                 )}
               </div>
+
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 mt-2">Beat Markers</div>
+              <div className="overflow-y-auto space-y-1 mb-2 max-h-40">
+                {markers.map((marker, index) => (
+                  <div
+                    key={index}
+                    className="group flex justify-between items-center w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <span className="cursor-pointer text-gray-600 dark:text-gray-400" onClick={() => navigateToSection(marker.label, marker.time)}>
+                      <span className="text-blue-500 mr-2">[{formatTime(marker.time)}]</span>
+                      {marker.label}
+                    </span>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {index < markers.length - 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (beatPlayerRef.current) {
+                              beatPlayerRef.current.setLoop(marker.time, markers[index + 1].time);
+                            }
+                          }}
+                          className="text-xs text-blue-500 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded"
+                        >
+                          Loop
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMarker(e, index);
+                        }}
+                        className="text-gray-400 hover:text-red-500 text-lg leading-none"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {markers.length === 0 && (
+                  <div className="text-gray-400 text-sm italic px-2">No markers yet.</div>
+                )}
+              </div>
+              
+              <form onSubmit={handleAddMarker} className="flex gap-2 items-center text-sm px-1 mb-4">
+                <input 
+                  type="text" 
+                  value={newMarkerTime}
+                  onChange={(e) => setNewMarkerTime(e.target.value)}
+                  placeholder="0:00" 
+                  className="w-16 p-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <input 
+                  type="text" 
+                  value={newMarkerLabel}
+                  onChange={(e) => setNewMarkerLabel(e.target.value)}
+                  placeholder="Label" 
+                  className="flex-1 p-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 min-w-0"
+                />
+                <button type="submit" className="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800/80 transition-colors">
+                  +
+                </button>
+              </form>
+
               <div className="text-sm text-gray-500 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="mb-4 space-y-3">
                   <div className="flex items-center justify-between px-1 border-b border-gray-100 dark:border-gray-700 pb-3">
@@ -860,9 +1021,20 @@ const SessionEditor = () => {
                   .cm-section-header {
                     color: #8b5cf6; /* Tailwind purple-500 */
                     font-weight: 700;
+                    padding: 2px 4px;
+                    margin-left: -4px;
+                    transition: all 0.2s ease;
                   }
                   .dark .cm-section-header {
                     color: #a78bfa; /* Tailwind purple-400 */
+                  }
+                  
+                  .cm-active-section {
+                    background: rgba(59,130,246,0.15); /* Tailwind blue-500 with 15% opacity */
+                    border-radius: 4px;
+                  }
+                  .dark .cm-active-section {
+                    background: rgba(96,165,250,0.2); /* Tailwind blue-400 with 20% opacity */
                   }
                   
                   .cm-syl-0 { color: #f87171 !important; } /* red-400 */
@@ -887,17 +1059,18 @@ const SessionEditor = () => {
                   }
                   
                   .cm-editor {
-                    height: auto;
-                    min-height: 400px;
+                    height: 100%;
                     background-color: transparent;
                     font-family: inherit;
                     font-size: 16px;
                   }
                   .cm-scroller {
-                    overflow: visible !important;
+                    overflow: auto;
+                    height: 100%;
                   }
                   .cm-content {
                     padding: 1rem 0;
+                    min-height: 400px;
                   }
                   .cm-line {
                     padding: 0;
@@ -909,13 +1082,16 @@ const SessionEditor = () => {
                     outline: none !important;
                   }
                 `}</style>
-                <div className="flex-1 relative w-full h-full bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition-colors p-4">
+                <div className="flex-1 w-full bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition-colors p-4" style={{ height: '600px', overflowY: 'auto' }}>
                   
                   <CodeMirror
+                    onCreateEditor={(view) => {
+                      editorRef.current = view;
+                    }}
                     value={lyrics}
                     onChange={(val) => updateActiveDraftContent(val)}
                     extensions={[
-                      sectionHeaderPlugin,
+                      getSectionHeaderPlugin(activeSectionType),
                       EditorView.lineWrapping,
                       placeholder('Start writing some bars... Use [Hook] or [Verse] to create sections.'),
                       ...(showSyllables ? [syllablePlugin] : []),
