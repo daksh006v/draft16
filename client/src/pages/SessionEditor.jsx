@@ -6,6 +6,7 @@ import { uploadAudio } from '../services/uploadService';
 import { getRhymes } from '../services/rhymeService';
 import BeatPlayer from '../components/BeatPlayer';
 import YouTubePlayer from '../components/YouTubePlayer';
+import Dropdown from '../components/ui/Dropdown';
 import { startMetronome } from '../utils/metronome';
 import CodeMirror from '@uiw/react-codemirror';
 import { ViewPlugin, Decoration, EditorView, WidgetType, placeholder } from '@codemirror/view';
@@ -309,10 +310,10 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
       {...listeners}
       onClick={() => setActiveDraftIndex(idx)}
       onDoubleClick={handleDoubleClick}
-      className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all cursor-grab active:cursor-grabbing border select-none relative shrink-0 tracking-wide
+      className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all duration-300 cursor-grab active:cursor-grabbing border-b-2 select-none relative shrink-0 tracking-wide hover:shadow-[0_0_12px_rgba(99,102,241,0.05)]
         ${isActive 
-          ? 'bg-white dark:bg-slate-900 border-slate-200/50 dark:border-white/10 border-b-white dark:border-b-slate-900 rounded-t-2xl text-indigo-600 dark:text-cyan-400 -mb-px z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]' 
-          : 'bg-white/40 dark:bg-slate-800/40 border-transparent border-b-transparent text-slate-500 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-800/80 rounded-t-xl z-0 mb-0'
+          ? 'text-indigo-600 dark:text-cyan-400 border-indigo-500 dark:border-cyan-400 bg-white/50 dark:bg-slate-800/50 rounded-t-xl' 
+          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-500/5 dark:hover:bg-slate-400/5 border-transparent'
         }`}
     >
       {isEditing ? (
@@ -891,33 +892,35 @@ const SessionEditor = () => {
   if (!loading && isFirstLoad.current) isFirstLoad.current = false;
 
   return (
-    <div className="relative min-h-[calc(100vh-73px)] overflow-hidden p-4 md:p-8">
-      {/* Background Orbs */}
-      <div className="fixed top-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-      <div className="fixed bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
+    <div className="min-h-[calc(100vh-73px)] p-4 md:p-8" style={{ background: 'var(--bg-base)' }}>
 
       <div className="max-w-[1500px] w-full mx-auto space-y-6 relative z-10">
         
-        {/* Header Actions */}
-        <div className="flex justify-between items-center glass-panel p-4 rounded-2xl shadow-sm border border-transparent dark:border-white/10 transition-colors mb-2">
+        <div className="flex justify-between items-center p-4 rounded-lg mb-2 transition-colors" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <button 
             onClick={() => navigate('/dashboard')}
-            className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400 font-semibold transition-colors flex items-center gap-2"
+            className="font-semibold transition-colors flex items-center gap-2 text-sm"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-focus)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
           >
             <span>&larr;</span> Dashboard
           </button>
           <div className="flex items-center gap-3">
             <button
               onClick={exportLyrics}
-              className="bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl transition-all border border-slate-200 dark:border-white/10 text-sm font-medium hidden sm:block shadow-sm"
+              className="px-4 py-2 rounded-lg transition-all text-sm font-medium hidden sm:block"
+              style={{ background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
               Export TXT
             </button>
             <button 
               onClick={handleSave}
               disabled={saving}
-              className={`px-6 py-2 rounded-xl font-bold text-white transition-all shadow-lg text-sm
-                ${saving ? 'bg-indigo-400 cursor-not-allowed' : 'bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/25 hover:-translate-y-0.5'}`}
+              className="px-5 py-2 rounded-lg font-bold text-white transition-all text-sm"
+              style={{ background: saving ? 'var(--accent-soft)' : 'var(--accent-focus)', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
             >
               {saving ? 'Saving...' : 'Save Session'}
             </button>
@@ -925,34 +928,36 @@ const SessionEditor = () => {
         </div>
 
         {/* Editor Main Content */}
-        <div className="glass-panel rounded-3xl overflow-hidden transition-colors border border-transparent dark:border-white/10 shadow-2xl">
+        <div className="rounded-xl overflow-hidden transition-colors" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           
           {/* Top Controls (Title & Beat) */}
-          <div className="p-6 md:p-8 border-b border-slate-200/50 dark:border-white/5 bg-white/20 dark:bg-slate-800/10 space-y-6 transition-colors">
+          <div className="px-6 md:px-8 py-4 space-y-4 transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Session Title</label>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Name your track..."
-                className="w-full text-3xl md:text-4xl font-display font-extrabold p-0 bg-transparent outline-none text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-600 transition-all border-none focus:ring-0"
+                className="w-full text-3xl md:text-4xl font-display font-extrabold p-0 bg-transparent outline-none placeholder-slate-500 transition-all border-none focus:ring-0"
+                style={{ color: 'var(--text-main)' }}
               />
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
               <div className="md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat Source</label>
-                <select 
+                <Dropdown
                   value={beatSource}
-                  onChange={(e) => setBeatSource(e.target.value)}
-                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
-                >
-                  <option value="youtube">YouTube</option>
-                  <option value="upload">Upload Audio</option>
-                  <option value="external">External Link</option>
-                </select>
+                  onChange={(val) => setBeatSource(val)}
+                  options={[
+                    { value: 'youtube', label: 'YouTube' },
+                    { value: 'upload', label: 'Upload Audio' },
+                    { value: 'external', label: 'External Link' }
+                  ]}
+                  className="w-full"
+                />
               </div>
               <div className="md:col-span-2">
                 {beatSource === 'upload' ? (
@@ -1101,7 +1106,7 @@ const SessionEditor = () => {
               </div>
               
               <form onSubmit={handleAddMarker} className="flex gap-2 items-center text-sm mb-6">
-                <div className="flex bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/10 rounded-xl p-1 shadow-inner w-full flex-1">
+                <div className="flex bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/10 rounded-xl p-1 shadow-inner w-full flex-1 transition-all focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:border-indigo-500/50">
                   <input 
                     type="text" 
                     value={newMarkerTime}
@@ -1129,7 +1134,7 @@ const SessionEditor = () => {
                     <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs tracking-wide">Show Syllables</span>
                     <button 
                       onClick={() => setShowSyllables(!showSyllables)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSyllables ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:focus:ring-offset-slate-900 focus:ring-offset-1 ${showSyllables ? 'bg-indigo-500 hover:shadow-[0_0_8px_rgba(99,102,241,0.3)]' : 'bg-slate-300 dark:bg-slate-600'}`}
                       role="switch"
                       aria-checked={showSyllables}
                     >
@@ -1141,7 +1146,7 @@ const SessionEditor = () => {
                     <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs tracking-wide">Show Rhymes</span>
                     <button 
                       onClick={() => setShowRhymes(!showRhymes)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showRhymes ? 'bg-purple-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500/40 dark:focus:ring-offset-slate-900 focus:ring-offset-1 ${showRhymes ? 'bg-purple-500 hover:shadow-[0_0_8px_rgba(168,85,247,0.3)]' : 'bg-slate-300 dark:bg-slate-600'}`}
                       role="switch"
                       aria-checked={showRhymes}
                     >
@@ -1153,7 +1158,7 @@ const SessionEditor = () => {
                     <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs tracking-wide">Rhyme Scheme</span>
                     <button 
                       onClick={() => setShowRhymeScheme(!showRhymeScheme)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showRhymeScheme ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:focus:ring-offset-slate-900 focus:ring-offset-1 ${showRhymeScheme ? 'bg-teal-500 hover:shadow-[0_0_8px_rgba(20,184,166,0.3)]' : 'bg-slate-300 dark:bg-slate-600'}`}
                       role="switch"
                       aria-checked={showRhymeScheme}
                     >
@@ -1266,8 +1271,8 @@ const SessionEditor = () => {
                         disabled={isRecording}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm ${
                           isRecording 
-                            ? 'bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-600 cursor-not-allowed' 
-                            : 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border border-red-500/20 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
+                            ? 'bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse' 
+                            : 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border border-red-500/20 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30 hover:shadow-[0_0_12px_rgba(239,68,68,0.3)]'
                         }`}
                       >
                         <span className={`h-2.5 w-2.5 rounded-full ${isRecording ? 'bg-slate-400 dark:bg-slate-600' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse'}`}></span>
@@ -1296,32 +1301,32 @@ const SessionEditor = () => {
                         </span>
                       )}
                     </div>
-                    <select 
-                      className="bg-white/50 dark:bg-slate-800/50 text-xs font-bold uppercase tracking-wider p-2.5 rounded-xl outline-none text-slate-700 dark:text-slate-200 border border-slate-200/50 dark:border-white/10 shadow-inner appearance-none pr-8 cursor-pointer"
-                      style={{ backgroundImage: `url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4"><path fill="%239CA3AF" d="M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem top 50%', backgroundSize: '0.65rem auto' }}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          insertSection(e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>+ Add Section</option>
-                      <option value="Hook">Hook</option>
-                      <option value="Verse">Verse</option>
-                      <option value="Bridge">Bridge</option>
-                      <option value="Intro">Intro</option>
-                      <option value="Outro">Outro</option>
-                    </select>
+                    <div className="w-[160px]">
+                      <Dropdown
+                        value=""
+                        onChange={(val) => {
+                          if (val) {
+                            insertSection(val);
+                          }
+                        }}
+                        placeholder="+ Add Section"
+                        options={[
+                          { value: 'Hook', label: 'Hook' },
+                          { value: 'Verse', label: 'Verse' },
+                          { value: 'Bridge', label: 'Bridge' },
+                          { value: 'Intro', label: 'Intro' },
+                          { value: 'Outro', label: 'Outro' }
+                        ]}
+                      />
+                    </div>
                   </div>
                 </div>
                 <style>{`
                   .cm-section-header {
-                    color: #6366f1; /* Tailwind indigo-500 */
-                    font-weight: 800;
+                    color: var(--accent-focus);
+                    font-weight: 700;
                     font-family: 'Outfit', sans-serif;
-                    letter-spacing: 0.05em;
+                    letter-spacing: 0.08em;
                     text-transform: uppercase;
                     padding: 4px 8px;
                     margin-left: -8px;
@@ -1331,17 +1336,17 @@ const SessionEditor = () => {
                     margin-bottom: 0.25rem;
                   }
                   .dark .cm-section-header {
-                    color: #22d3ee; /* Tailwind cyan-400 */
+                    color: var(--accent-focus);
                   }
                   
                   .cm-active-section {
-                    background: rgba(99,102,241,0.1); /* Tailwind indigo-500 with 10% */
+                    background: rgba(64, 138, 113, 0.08);
                     border-radius: 6px;
-                    border-left: 3px solid #6366f1;
+                    border-left: 3px solid var(--accent-focus);
                   }
                   .dark .cm-active-section {
-                    background: rgba(34,211,238,0.1); /* Tailwind cyan-400 with 10% */
-                    border-left: 3px solid #22d3ee;
+                    background: rgba(64, 138, 113, 0.12);
+                    border-left: 3px solid var(--accent-focus);
                   }
                   
                   .cm-syl-0 { color: #f87171 !important; }
@@ -1357,16 +1362,16 @@ const SessionEditor = () => {
                   
                   .cm-rhyme-scheme {
                     font-size: 12px;
-                    color: #6366f1;
+                    color: var(--accent-focus);
                     margin-left: 8px;
                     font-weight: 700;
-                    background: rgba(99,102,241,0.1);
+                    background: rgba(64, 138, 113, 0.1);
                     padding: 2px 6px;
                     border-radius: 4px;
                   }
                   .dark .cm-rhyme-scheme {
-                    color: #22d3ee;
-                    background: rgba(34,211,238,0.1);
+                    color: var(--accent-focus);
+                    background: rgba(64, 138, 113, 0.15);
                   }
                   
                   .cm-editor {
@@ -1374,7 +1379,8 @@ const SessionEditor = () => {
                     background-color: transparent;
                     font-family: inherit;
                     font-size: 1.125rem;
-                    line-height: 1.75;
+                    line-height: 1.7;
+                    letter-spacing: 0.3px;
                   }
                   .cm-scroller {
                     overflow: auto;
