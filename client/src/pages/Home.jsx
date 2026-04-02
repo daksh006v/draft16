@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 const Home = () => {
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-73px)] bg-[var(--bg-base)]">
+    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-73px)] bg-[var(--bg-main)]">
       <main className="text-center px-4 z-10 max-w-3xl">
         <h1 className="font-display text-5xl md:text-7xl font-bold text-[var(--text-main)] mb-6 tracking-tight leading-tight">
           Professional songwriting workspace.
@@ -15,7 +15,7 @@ const Home = () => {
           <Link 
             to="/signup" 
             className="w-full sm:w-auto text-white px-8 py-4 rounded-lg font-medium text-lg transition-all flex items-center justify-center"
-            style={{ background: 'var(--accent-focus)' }}
+            style={{ background: 'var(--accent-primary)' }}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
@@ -23,7 +23,7 @@ const Home = () => {
           </Link>
           <Link 
             to="/login" 
-            className="w-full sm:w-auto bg-transparent border border-[var(--border-subtle)] text-[var(--text-main)] px-8 py-4 rounded-lg font-medium text-lg hover:bg-[var(--bg-elevated)] transition-all flex items-center justify-center"
+            className="w-full sm:w-auto bg-transparent border border-[var(--bg-border)] text-[var(--text-main)] px-8 py-4 rounded-lg font-medium text-lg hover:bg-[var(--bg-elevated)] transition-all flex items-center justify-center"
           >
             Sign In
           </Link>
@@ -34,3 +34,4 @@ const Home = () => {
 };
 
 export default Home;
+

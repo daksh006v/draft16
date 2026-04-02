@@ -26,11 +26,11 @@ const Dropdown = ({ value, onChange, options, placeholder = "Select...", classNa
         className="w-full flex items-center justify-between transition-all duration-200 text-left outline-none"
         style={{
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--bg-border)',
           padding: '10px 14px',
           borderRadius: '8px',
           color: 'var(--text-main)',
-          borderColor: isOpen ? 'var(--accent-focus)' : 'var(--border-subtle)',
+          borderColor: isOpen ? 'var(--accent-primary)' : 'var(--bg-border)',
           boxShadow: isOpen ? '0 0 12px rgba(99,102,241,0.2)' : 'none'
         }}
       >
@@ -52,7 +52,7 @@ const Dropdown = ({ value, onChange, options, placeholder = "Select...", classNa
         className={`dropdown-menu absolute w-full z-[1000] overflow-hidden transition-all duration-200 origin-top`}
         style={{
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--bg-border)',
           borderRadius: '8px',
           padding: '6px',
           marginTop: '6px',
@@ -75,13 +75,13 @@ const Dropdown = ({ value, onChange, options, placeholder = "Select...", classNa
                 style={{
                   padding: '10px 12px',
                   borderRadius: '6px',
-                  background: isSelected ? 'var(--accent-focus)' : 'transparent',
+                  background: isSelected ? 'var(--accent-primary)' : 'transparent',
                   color: isSelected ? '#ffffff' : 'var(--text-main)',
                   fontWeight: isSelected ? 600 : 500,
                   opacity: isSelected ? 0.9 : 1
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = 'var(--bg-panel)';
+                  if (!isSelected) e.currentTarget.style.background = 'var(--bg-surface)';
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected) e.currentTarget.style.background = 'transparent';
@@ -98,3 +98,4 @@ const Dropdown = ({ value, onChange, options, placeholder = "Select...", classNa
 };
 
 export default Dropdown;
+

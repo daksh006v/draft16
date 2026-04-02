@@ -8,29 +8,111 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─── Teal Studio Theme ───────────────────────────────────────── */
+/* ─── Studio Inspired Theme ──────────────────────────────────── */
 :root {
-  --bg-base:       #f4f7f6;
-  --bg-panel:      #ffffff;
-  --bg-elevated:   #ffffff;
-  --border-subtle: #d4e0dd;
-  --text-main:     #0e1f1d;
-  --text-muted:    #5a8880;
-  --accent-focus:  #5f8f8b;
-  --accent-soft:   #4a726f;
-  --bg-hover:      rgba(95, 143, 139, 0.06);
+  --bg-main:       #F1F5F3;
+  --bg-surface:    #FAFCFB;
+  --bg-elevated:   #FFFFFF;
+  --bg-border:     #DDE6E2;
+  --text-main:     #172421;
+  --text-muted:    #6C7D79;
+  --brand-dark:    #0F1A17;
+  --accent-primary:#2F7A6B;
+  --accent-hover:  #3C8F7E;
+  --accent-warm:   #D0875C;
+  --bg-hover:      rgba(47, 122, 107, 0.08);
+
+  --shadow-soft:   0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-hover:  0 8px 28px rgba(0, 0, 0, 0.10);
+  --accent-glow:   0 0 0 2px rgba(47, 122, 107, 0.15);
+
+  --take-bg:       rgba(0, 0, 0, 0.02);
+  --take-bg-playing:rgba(0, 0, 0, 0.04);
+  --take-border:   rgba(0, 0, 0, 0.05);
+  --take-btn-bg:   rgba(0, 0, 0, 0.06);
+  --take-btn-hover:rgba(0, 0, 0, 0.12);
+  --take-text:     #111111;
+  --take-time:     rgba(0, 0, 0, 0.5);
+
+  --editor-bg:     var(--bg-surface);
+  --editor-bg-solid:var(--bg-surface);
+  --editor-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --editor-border: rgba(0, 0, 0, 0.06);
+
+  --tab-inactive:  rgba(0, 0, 0, 0.5);
+  --tab-hover:     #111111;
+  --tab-active:    var(--text-main);
+  --tab-active-shadow: none;
+  --tab-container-border: transparent;
+  --tab-hover-bg:  rgba(0, 0, 0, 0.04);
+
+  --nav-heading:   var(--accent-primary);
+  --nav-item:      var(--text-main);
+  --nav-active:    var(--accent-primary);
 }
 
 .dark {
-  --bg-base:       #091413;
-  --bg-panel:      #0F1C1A;
-  --bg-elevated:   #132624;
-  --border-subtle: #1F3A36;
-  --text-main:     #E6F1EF;
-  --text-muted:    #7FA6A0;
-  --accent-focus:  #5f8f8b;
-  --accent-soft:   #4a726f;
-  --bg-hover:      rgba(95, 143, 139, 0.08);
+  --bg-main:       #0f1115;
+  --bg-surface:    #151821;
+  --bg-elevated:   #1b1f2a;
+  --bg-border:     rgba(255, 255, 255, 0.06);
+  --text-main:     #ffffff;
+  --text-secondary:rgba(255, 255, 255, 0.7);
+  --text-muted:    rgba(255, 255, 255, 0.45);
+  --brand-dark:    #ffffff;
+  --accent-primary:#22c55e;
+  --accent-hover:  #16a34a;
+  --accent-warm:   #D0875C;
+  --bg-hover:      rgba(255, 255, 255, 0.05);
+
+  --shadow-soft:   0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-hover:  0 8px 28px rgba(0, 0, 0, 0.5);
+  --accent-glow:   0 0 0 2px rgba(34, 197, 94, 0.25);
+  
+  --take-container-bg: #ffffff;
+  --take-container-border: rgba(0, 0, 0, 0.06);
+  --take-container-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --take-header-color: #6b7280;
+
+  --take-bg:       transparent;
+  --take-bg-playing:rgba(0, 0, 0, 0.02);
+  --take-bg-hover: rgba(0, 0, 0, 0.02);
+  --take-border:   rgba(0, 0, 0, 0.05);
+  --take-btn-bg:   rgba(0, 0, 0, 0.06);
+  --take-btn-hover:rgba(0, 0, 0, 0.12);
+  --take-progress-bg: rgba(0, 0, 0, 0.1);
+  --take-text:     #111111;
+  --take-time:     rgba(0, 0, 0, 0.5);
+
+  --editor-bg:     #1b1f2a;
+  --editor-bg-solid:#1b1f2a;
+  --editor-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --editor-border: rgba(255, 255, 255, 0.06);
+
+  --tab-inactive:  rgba(255, 255, 255, 0.45);
+  --tab-hover:     #ffffff;
+  --tab-active:    #ffffff;
+  --tab-active-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
+  --tab-container-border: rgba(255, 255, 255, 0.06);
+  --tab-hover-bg:  rgba(255, 255, 255, 0.05);
+
+  --nav-heading:   rgba(255, 255, 255, 0.8);
+  --nav-item:      rgba(255, 255, 255, 0.6);
+  --nav-active:    #ffffff;
+
+  --take-container-bg: #0f172a;
+  --take-container-border: rgba(255, 255, 255, 0.06);
+  --take-header-color: rgba(255, 255, 255, 0.8);
+
+  --take-bg:       #121826;
+  --take-bg-playing: #121826;
+  --take-bg-hover: #161c28;
+  --take-border:   transparent;
+  --take-btn-bg:   rgba(255, 255, 255, 0.05);
+  --take-btn-hover: rgba(255, 255, 255, 0.15);
+  --take-progress-bg: rgba(255, 255, 255, 0.1);
+  --take-text:     rgba(255, 255, 255, 0.9);
+  --take-time:     rgba(255, 255, 255, 0.5);
 }
 
 /* ─── Dropdown shadows ───────────────────────────────────────── */
@@ -48,11 +130,101 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-base);
+  background-color: var(--bg-main);
   color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* ─── Global Glow & Elevation ───────────────────────────────── */
+input:focus, 
+textarea:focus, 
+select:focus, 
+button:focus-visible {
+  box-shadow: var(--accent-glow) !important;
+  outline: none !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
+/* ─── Global Animation Helpers ───────────────────────────────── */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* ─── Draft Add Button ─────────────────────────────────────── */
+.draft-add {
+  color: rgba(0, 0, 0, 0.65);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.draft-add:hover {
+  color: var(--accent-primary);
+  transform: translateY(-1px) scale(1.03);
+}
+
+.draft-add:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.dark .draft-add {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ─── Global Custom Scrollbars ───────────────────────────────── */
+
+* {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  
+  /* Edge Legacy / IE */
+  -ms-overflow-style: none;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Webkit (Chrome, Edge, Safari, Brave) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

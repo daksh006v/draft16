@@ -31,8 +31,8 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-base)' }}>
-      <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '32px' }}>
+    <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-main)' }}>
+      <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: '12px', padding: '32px' }}>
         <h2 className="font-display text-3xl font-semibold text-center mb-8 tracking-tight" style={{ color: 'var(--text-main)' }}>Welcome Back</h2>
         
         {error && (
@@ -47,13 +47,13 @@ const Login = () => {
           onClick={handleGoogleLogin}
           className="w-full py-3 rounded-lg font-medium flex items-center justify-center gap-3 transition-all"
           style={{
-            background: 'var(--bg-base)',
-            border: '1px solid var(--border-subtle)',
+            background: 'var(--bg-main)',
+            border: '1px solid var(--bg-border)',
             color: 'var(--text-main)',
             cursor: 'pointer',
           }}
           onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--text-muted)'}
-          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--bg-border)'}
         >
           {/* Minimal Google 'G' SVG */}
           <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -67,9 +67,9 @@ const Login = () => {
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
+          <div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }}></div>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
-          <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
+          <div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }}></div>
         </div>
         
         {/* Email Form (Secondary) */}
@@ -81,9 +81,9 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 rounded-lg outline-none transition-all"
-              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-focus)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--bg-border)'}
               placeholder="Enter your email"
               required
             />
@@ -96,9 +96,9 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 rounded-lg outline-none transition-all"
-              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-focus)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--bg-border)'}
               placeholder="Enter your password"
               required
             />
@@ -108,7 +108,7 @@ const Login = () => {
             type="submit"
             disabled={loading}
             className="w-full py-3 mt-2 rounded-lg font-medium text-white transition-all"
-            style={{ background: loading ? 'var(--accent-soft)' : 'var(--accent-focus)', cursor: loading ? 'not-allowed' : 'pointer' }}
+            style={{ background: loading ? 'var(--accent-hover)' : 'var(--accent-primary)', cursor: loading ? 'not-allowed' : 'pointer' }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -116,7 +116,7 @@ const Login = () => {
 
         <p className="text-center text-sm mt-8" style={{ color: 'var(--text-muted)' }}>
           Don't have an account?{' '}
-          <Link to="/signup" className="font-semibold hover:underline" style={{ color: 'var(--accent-focus)' }}>
+          <Link to="/signup" className="font-semibold hover:underline" style={{ color: 'var(--accent-primary)' }}>
             Sign up
           </Link>
         </p>
@@ -126,3 +126,4 @@ const Login = () => {
 };
 
 export default Login;
+

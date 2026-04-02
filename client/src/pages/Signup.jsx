@@ -28,8 +28,8 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-base)' }}>
-      <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '32px' }}>
+    <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-main)' }}>
+      <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: '12px', padding: '32px' }}>
         <h2 className="font-display text-3xl font-bold text-center mb-8 tracking-tight" style={{ color: 'var(--text-main)' }}>Create Account</h2>
         
         {error && (
@@ -46,9 +46,9 @@ const Signup = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full p-3 rounded-lg outline-none transition-all"
-              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-focus)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--bg-border)'}
               placeholder="Choose a username"
               required
             />
@@ -61,9 +61,9 @@ const Signup = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 rounded-lg outline-none transition-all"
-              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-focus)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--bg-border)'}
               placeholder="Enter your email"
               required
             />
@@ -76,9 +76,9 @@ const Signup = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 rounded-lg outline-none transition-all"
-              style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-focus)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--bg-border)'}
               placeholder="Create a password"
               required
             />
@@ -88,7 +88,7 @@ const Signup = () => {
             type="submit"
             disabled={loading}
             className="w-full py-3 mt-2 rounded-lg font-medium text-white transition-all"
-            style={{ background: loading ? '#818cf8' : 'var(--accent-focus)', cursor: loading ? 'not-allowed' : 'pointer' }}
+            style={{ background: loading ? '#818cf8' : 'var(--accent-primary)', cursor: loading ? 'not-allowed' : 'pointer' }}
           >
             {loading ? 'Creating account...' : 'Sign Up'}
           </button>
@@ -96,9 +96,9 @@ const Signup = () => {
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
+          <div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }}></div>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
-          <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }}></div>
+          <div className="flex-1 h-px" style={{ background: 'var(--bg-border)' }}></div>
         </div>
 
         {/* Google Login Button */}
@@ -107,13 +107,13 @@ const Signup = () => {
           onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
           className="w-full py-3 rounded-lg font-medium flex items-center justify-center gap-3 transition-all"
           style={{
-            background: 'var(--bg-base)',
-            border: '1px solid var(--border-subtle)',
+            background: 'var(--bg-main)',
+            border: '1px solid var(--bg-border)',
             color: 'var(--text-main)',
             cursor: 'pointer',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-focus)'}
-          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--bg-border)'}
         >
           {/* Minimal Google 'G' SVG */}
           <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -127,7 +127,7 @@ const Signup = () => {
         
         <p className="text-center text-sm mt-8" style={{ color: 'var(--text-muted)' }}>
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent-focus)' }}>
+          <Link to="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent-primary)' }}>
             Log in
           </Link>
         </p>
@@ -137,3 +137,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

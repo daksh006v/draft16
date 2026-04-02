@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useContext } from 'react';
 import { getToken, removeToken } from '../utils/auth';
 import { ThemeContext } from '../context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,8 +22,8 @@ const Navbar = () => {
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      background: 'var(--bg-base)',
-      borderBottom: '1px solid var(--border-subtle)',
+      background: 'var(--bg-main)',
+      borderBottom: '1px solid var(--bg-border)',
       color: 'var(--text-main)',
     }}>
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -31,7 +32,7 @@ const Navbar = () => {
           className="font-display transition-opacity hover:opacity-75 flex items-center"
           style={{ color: 'var(--text-main)', letterSpacing: '-0.05em', fontWeight: 800, fontSize: '28px' }}
         >
-          Draft<span style={{ color: 'var(--accent-focus)', fontWeight: 800, marginLeft: '0.04em' }}>16</span>
+          Draft<span style={{ color: 'var(--accent-primary)', fontWeight: 800, marginLeft: '0.04em' }}>16</span>
         </Link>
         
         <div className="flex gap-6 items-center">
@@ -40,7 +41,7 @@ const Navbar = () => {
               <Link
                 to="/dashboard"
                 className="text-sm font-medium transition-colors"
-                style={{ color: isActive('/dashboard') ? 'var(--accent-focus)' : 'var(--text-muted)' }}
+                style={{ color: isActive('/dashboard') ? 'var(--accent-primary)' : 'var(--text-muted)' }}
               >
                 Dashboard
               </Link>
@@ -59,14 +60,14 @@ const Navbar = () => {
               <Link
                 to="/login"
                 className="text-sm font-medium transition-colors"
-                style={{ color: isActive('/login') ? 'var(--accent-focus)' : 'var(--text-muted)' }}
+                style={{ color: isActive('/login') ? 'var(--accent-primary)' : 'var(--text-muted)' }}
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
                 className="text-sm font-medium text-white px-4 py-2 rounded-lg transition-opacity"
-                style={{ background: 'var(--accent-focus)' }}
+                style={{ background: 'var(--accent-primary)' }}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
               >
@@ -77,11 +78,24 @@ const Navbar = () => {
 
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded-md transition-colors text-sm leading-none flex items-center justify-center"
-            style={{ border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', background: 'transparent' }}
+            className="flex items-center justify-center transition-all duration-200"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderRadius: '8px',
+              padding: '6px',
+              opacity: 0.7,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; e.currentTarget.style.background = 'transparent'; }}
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '🌙' : '🌞'}
+            {theme === 'light'
+              ? <Moon size={16} strokeWidth={1.5} />
+              : <Sun size={16} strokeWidth={1.5} />
+            }
           </button>
         </div>
       </div>
@@ -90,3 +104,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

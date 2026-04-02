@@ -16,6 +16,7 @@ import { rhymeSchemePlugin } from '../editor/plugins/rhymeSchemePlugin';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Mic2 } from 'lucide-react';
 
 // CodeMirror Extension for highlighting [Section Headers]
 export const getSectionHeaderPlugin = (activeType) => ViewPlugin.fromClass(
@@ -262,6 +263,240 @@ export const rhymePlugin = ViewPlugin.fromClass(
   }
 );
 
+const TakeCard = ({ take, index, editingTakeId, editingTakeName, setEditingTakeName, handleRenameTakeSubmit, setEditingTakeId, handlePlayTakeSync, onDelete }) => {
+  const takeIdentifier = take._id || take.id;
+  const audioRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+        setCurrentTime(audio.currentTime);
+      }
+    };
+
+    const updateDuration = () => {
+      if (audio.duration) {
+        setDuration(audio.duration);
+      }
+    };
+    
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    // Initial check if already loaded
+    if (audio.readyState > 0) {
+      updateDuration();
+    }
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (audioRef.current.paused) {
+      handlePlayTakeSync(takeIdentifier);
+    } else {
+      audioRef.current.pause();
+    }
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time) || time === Infinity || time == null) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  return (
+    <div className="group" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '12px', 
+      padding: '20px 24px', 
+      borderRadius: '12px', 
+      background: isPlaying ? 'var(--take-bg-playing)' : 'var(--take-bg)', 
+      border: '1px solid var(--take-border)', 
+      borderLeft: isPlaying ? '4px solid var(--accent-primary)' : '1px solid var(--take-border)',
+      marginBottom: '10px',
+      position: 'relative',
+      transition: 'all 0.2s ease',
+      transform: 'translateY(0)',
+      boxShadow: 'none'
+    }}
+    onMouseEnter={(e) => {
+      if (!isPlaying) e.currentTarget.style.background = 'var(--take-bg-hover)';
+      e.currentTarget.style.transform = 'translateY(-1px)';
+      e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)';
+    }}
+    onMouseLeave={(e) => {
+      if (!isPlaying) e.currentTarget.style.background = 'var(--take-bg)';
+      e.currentTarget.style.transform = 'translateY(0)';
+      e.currentTarget.style.boxShadow = 'none';
+    }}>
+      
+      {/* Hidden Audio for playback engine */}
+      <audio ref={audioRef} data-take-id={takeIdentifier} src={take.url} className="hidden" preload="metadata" />
+
+      {/* Play Button */}
+      <button
+        onClick={togglePlay}
+        className="shrink-0 flex items-center justify-center transition-all"
+        style={{ 
+          width: '38px', height: '38px', borderRadius: '50%', 
+          background: isPlaying ? 'var(--accent-primary)' : 'var(--take-btn-bg)', 
+          color: isPlaying ? '#ffffff' : 'var(--take-text)',
+          transform: 'scale(1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          if (!isPlaying) e.currentTarget.style.background = 'var(--take-btn-hover)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          if (!isPlaying) e.currentTarget.style.background = 'var(--take-btn-bg)';
+        }}
+        onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+        onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+      >
+        {isPlaying ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '2px' }}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        )}
+      </button>
+      
+      {/* Content Area */}
+      <div className="flex flex-col flex-1 overflow-hidden" style={{ gap: '8px' }}>
+        
+        {/* ROW 1: Title & Info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {editingTakeId === takeIdentifier ? (
+              <input
+                autoFocus
+                type="text"
+                value={editingTakeName}
+                onChange={(e) => setEditingTakeName(e.target.value)}
+                onBlur={() => handleRenameTakeSubmit(takeIdentifier)}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRenameTakeSubmit(takeIdentifier);
+                  if (e.key === 'Escape') setEditingTakeId(null);
+                }}
+                className="font-medium bg-transparent outline-none w-full max-w-[200px]"
+                style={{ fontSize: '14px', color: 'var(--take-text)', borderBottom: '1px solid var(--take-time)' }}
+              />
+            ) : (
+              <span 
+                className="truncate cursor-text transition-colors duration-200"
+                style={{ fontWeight: 500, fontSize: '14px', color: 'var(--take-text)' }}
+                onClick={() => {
+                  setEditingTakeId(takeIdentifier);
+                  setEditingTakeName(take.name || `Take ${index + 1}`);
+                }}
+                title="Click to rename"
+              >
+                {take.name || `Take ${index + 1}`}
+              </span>
+            )}
+
+            {take.isUploading && (
+               <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest animate-pulse ml-2">Uploading...</span>
+            )}
+            {take.error && (
+               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-2">Failed</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Time Display */}
+            <span style={{ fontSize: '12px', color: 'var(--take-time)', fontVariantNumeric: 'tabular-nums' }}>
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+
+            {/* Controls (Delete) */}
+            <button
+              onClick={() => onDelete(takeIdentifier)}
+              className="w-7 h-7 flex justify-center items-center transition-all"
+              style={{ color: '#ef4444', opacity: 0.7, background: 'transparent', borderRadius: '6px' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = 1;
+                e.currentTarget.style.background = 'rgba(239,68,68,0.12)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = 0.7;
+                e.currentTarget.style.background = 'transparent';
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.18)';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.12)';
+              }}
+              title="Delete take"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* ROW 2: Timeline */}
+        <div 
+          className="w-full rounded-full cursor-pointer relative" 
+          style={{ height: '5px', background: 'var(--take-progress-bg)' }} 
+          onClick={(e) => {
+            if (!audioRef.current || !audioRef.current.duration) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audioRef.current.currentTime = percent * audioRef.current.duration;
+          }}
+          onMouseEnter={(e) => {
+             const track = e.currentTarget.querySelector('.track-fill');
+             if(track) track.style.filter = 'brightness(1.1)';
+             const thumb = e.currentTarget.querySelector('.thumb');
+             if(thumb) thumb.style.opacity = '1';
+          }}
+          onMouseLeave={(e) => {
+             const track = e.currentTarget.querySelector('.track-fill');
+             if(track) track.style.filter = 'brightness(1)';
+             const thumb = e.currentTarget.querySelector('.thumb');
+             if(thumb) thumb.style.opacity = '0';
+          }}
+        >
+          <div className="h-full rounded-full transition-all duration-100 ease-linear track-fill flex justify-end items-center" style={{ width: `${progress}%`, background: 'var(--accent-primary)' }}>
+            <div className="thumb transition-opacity duration-200" style={{ width: '9px', height: '9px', background: 'var(--accent-primary)', borderRadius: '50%', transform: 'translateX(4px)', opacity: 0 }}></div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  );
+};
+
 const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, onRename, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -305,16 +540,39 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        // Active tab: visually connected to editor
+        background: isActive ? 'var(--editor-bg-solid)' : 'transparent',
+        border: isActive ? '1px solid var(--editor-border)' : '1px solid transparent',
+        borderBottom: isActive ? 'none' : '1px solid transparent',
+        borderRadius: isActive ? '10px 10px 0 0' : '6px',
+        boxShadow: isActive ? 'var(--tab-active-shadow)' : 'none',
+        color: isActive ? 'var(--tab-active)' : 'var(--tab-inactive)',
+        opacity: 1,
+        fontWeight: isActive ? 600 : 400,
+        position: 'relative',
+        zIndex: isActive ? 2 : 1,
+        marginBottom: '0',
+        transition: 'all 0.2s ease',
+      }}
       {...attributes}
       {...listeners}
       onClick={() => setActiveDraftIndex(idx)}
       onDoubleClick={handleDoubleClick}
-      className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all duration-300 cursor-grab active:cursor-grabbing border-b-2 select-none relative shrink-0 tracking-wide hover:shadow-[0_0_12px_rgba(99,102,241,0.05)]
-        ${isActive 
-          ? 'text-indigo-600 dark:text-cyan-400 border-indigo-500 dark:border-cyan-400 bg-white/50 dark:bg-slate-800/50 rounded-t-xl' 
-          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-500/5 dark:hover:bg-slate-400/5 border-transparent'
-        }`}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.color = 'var(--tab-hover)';
+          e.currentTarget.style.background = 'var(--tab-hover-bg)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.color = 'var(--tab-inactive)';
+          e.currentTarget.style.background = 'transparent';
+        }
+      }}
+      className="group flex items-center gap-2 px-4 py-2.5 text-sm select-none shrink-0 cursor-grab active:cursor-grabbing"
     >
       {isEditing ? (
         <input
@@ -323,15 +581,16 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="bg-transparent border-b-2 border-indigo-500 text-slate-900 dark:text-white outline-none min-w-[60px] max-w-[120px] px-1"
-          onPointerDown={(e) => e.stopPropagation()} 
+          className="bg-transparent outline-none min-w-[60px] max-w-[120px] px-1"
+          style={{ borderBottom: '1px solid var(--accent-primary)', color: 'var(--text-main)' }}
+          onPointerDown={(e) => e.stopPropagation()}
         />
       ) : (
-        <span title={idx !== 0 ? "Double click to rename" : ""}>
+        <span title={idx !== 0 ? 'Double click to rename' : ''}>
           {draft.name}
         </span>
       )}
-      
+
       {idx !== 0 && (
         <button
           onPointerDown={(e) => e.stopPropagation()}
@@ -339,7 +598,10 @@ const SortableTab = ({ draft, idx, id, activeDraftIndex, setActiveDraftIndex, on
             e.stopPropagation();
             onDelete(idx);
           }}
-          className="text-slate-400 hover:text-red-500 hover:bg-red-500/10 h-5 w-5 flex items-center justify-center rounded-full ml-1 opacity-0 group-hover:opacity-100 transition-all focus:outline-none"
+          className="h-4 w-4 flex items-center justify-center rounded-full ml-0.5 opacity-0 group-hover:opacity-100 transition-all focus:outline-none"
+          style={{ color: '#9ca3af' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
         >
           &times;
         </button>
@@ -894,14 +1156,14 @@ const SessionEditor = () => {
   if (!loading && isFirstLoad.current) isFirstLoad.current = false;
 
   return (
-    <div className="min-h-[calc(100vh-73px)] p-4 md:p-8 transition-all duration-200 ease-in-out" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-[calc(100vh-73px)] p-4 md:p-8 transition-all duration-200 ease-in-out" style={{ background: 'var(--bg-main)' }}>
       {isFocusMode && <style>{`nav { display: none !important; }`}</style>}
       <div className={`max-w-[1500px] w-full mx-auto relative z-10 transition-all duration-200 ease-in-out ${isFocusMode ? 'space-y-0' : 'space-y-6'}`}>
         
         {/* Minimal Focus Header has been removed per instructions to keep standard UI */}
 
 
-        <div className="flex justify-between items-center p-4 rounded-lg mb-2 transition-colors" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        <div className="flex justify-between items-center p-4 rounded-lg mb-2 transition-colors" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
           <button 
             onClick={() => navigate('/dashboard')}
             className="font-semibold transition-colors flex items-center gap-2 text-sm"
@@ -915,7 +1177,7 @@ const SessionEditor = () => {
             <button
               onClick={exportLyrics}
               className="px-4 py-2 rounded-lg transition-all text-sm font-medium hidden sm:block"
-              style={{ background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}
+              style={{ background: 'transparent', border: '1px solid var(--bg-border)', color: 'var(--text-muted)' }}
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
@@ -925,7 +1187,7 @@ const SessionEditor = () => {
               onClick={handleSave}
               disabled={saving}
               className="px-5 py-2 rounded-lg font-bold text-white transition-all text-sm"
-              style={{ background: saving ? 'var(--accent-soft)' : 'var(--accent-focus)', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+              style={{ background: saving ? 'var(--accent-hover)' : 'var(--accent-primary)', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
             >
               {saving ? 'Saving...' : 'Save Session'}
             </button>
@@ -933,10 +1195,10 @@ const SessionEditor = () => {
         </div>
 
         {/* Editor Main Content */}
-        <div className={`rounded-xl overflow-hidden transition-all duration-200 ease-in-out`} style={{ background: isFocusMode ? 'var(--bg-base)' : 'var(--bg-panel)', border: isFocusMode ? 'none' : '1px solid var(--border-subtle)' }}>
+        <div className={`rounded-xl overflow-hidden transition-all duration-200 ease-in-out`} style={{ background: isFocusMode ? 'var(--bg-main)' : 'var(--bg-surface)', border: isFocusMode ? 'none' : '1px solid var(--bg-border)', boxShadow: isFocusMode ? 'none' : 'var(--shadow-soft)' }}>
           
           {/* Top Controls (Title & Beat) */}
-          <div className="px-6 md:px-8 py-4 space-y-4 transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <div className="px-6 md:px-8 py-4 space-y-4 transition-colors" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--bg-border)' }}>
             
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Session Title</label>
@@ -946,7 +1208,7 @@ const SessionEditor = () => {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Name your track..."
                 className="w-full text-3xl md:text-4xl font-display font-extrabold p-0 bg-transparent outline-none placeholder-slate-500 transition-all border-none focus:ring-0"
-                style={{ color: 'var(--text-main)' }}
+                style={{ color: 'var(--brand-dark)' }}
               />
             </div>
 
@@ -974,7 +1236,7 @@ const SessionEditor = () => {
                       type="file"
                       accept="audio/*"
                       onChange={handleFileUpload}
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-800 dark:file:text-blue-400"
+                      className="w-full p-2 rounded-lg outline-none transition-colors custom-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700"
                     />
                   </>
                 ) : (
@@ -985,7 +1247,7 @@ const SessionEditor = () => {
                       value={beatUrl}
                       onChange={(e) => setBeatUrl(e.target.value)}
                       placeholder="Paste link here..."
-                      className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors"
+                      className="w-full p-3 rounded-lg outline-none transition-colors custom-input"
                     />
                   </>
                 )}
@@ -1003,36 +1265,40 @@ const SessionEditor = () => {
             )}
 
             <div className="flex items-center justify-start gap-4 mt-2">
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg shadow-sm">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">BPM</label>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)', boxShadow: 'var(--shadow-soft)' }}>
+                <label className="text-sm font-medium transition-colors" style={{ color: 'var(--accent-primary)' }}>BPM</label>
                 <input 
                   type="number"
                   value={bpm}
                   min="40"
                   max="220"
                   onChange={(e) => setBpm(Number(e.target.value))}
-                  className="w-16 p-1 text-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 font-mono text-sm"
+                  className="w-16 p-1 text-center rounded outline-none font-mono text-sm transition-all"
+                  style={{ background: 'var(--bg-main)', border: '1px solid var(--bg-border)', color: 'var(--text-main)' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.boxShadow = 'var(--accent-glow)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--bg-border)'; e.currentTarget.style.boxShadow = 'none'; }}
                 />
               </div>
               <button
                 onClick={() => setMetronomeOn(!metronomeOn)}
-                className={`flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition-colors border ${
-                  metronomeOn 
-                    ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' 
-                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition-colors border"
+                style={{
+                  background: metronomeOn ? 'var(--accent-primary)' : 'transparent',
+                  color: metronomeOn ? '#fff' : 'var(--text-muted)',
+                  borderColor: metronomeOn ? 'var(--accent-primary)' : 'var(--bg-border)',
+                }}
               >
                 {metronomeOn ? (
                   <>
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                     </span>
                     Metronome ON
                   </>
                 ) : (
                   <>
-                    <span className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                    <span className="h-2 w-2 rounded-full" style={{ background: 'var(--text-muted)' }}></span>
                     Metronome OFF
                   </>
                 )}
@@ -1046,24 +1312,25 @@ const SessionEditor = () => {
             
             {/* Section Navigator (Left Column on Desktop, Top on Mobile) */}
             {!isFocusMode && (
-            <div className="lg:border-r border-slate-200/50 dark:border-white/5 lg:pr-6 flex flex-col gap-3 transition-opacity duration-200">
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#76ABAE' }}>Navigator</label>
+            <div className="flex flex-col gap-1 transition-opacity duration-200 w-full lg:pr-4">
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--nav-heading)' }}>Navigator</label>
               
-              <div className="text-[10px] font-bold uppercase tracking-widest mb-1 mt-2" style={{ color: '#76ABAE' }}>Sections</div>
-              <div className="overflow-y-auto space-y-1.5 mb-6 max-h-48 custom-scrollbar">
+              <div className="text-[10px] font-bold uppercase tracking-widest mb-1 mt-2" style={{ color: 'var(--nav-heading)' }}>Sections</div>
+              <div className="overflow-y-auto space-y-1.5 mb-6 max-h-[30vh]">
                 {parsedSections.map(section => (
                   <button
                     key={section.id}
                     onClick={() => navigateToSection(section.type)}
                     className="w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all border border-transparent"
                     style={{
-                      color: activeSectionId === section.id ? '#222831' : '#31363F',
+                      color: activeSectionId === section.id ? 'var(--nav-active)' : 'var(--nav-item)',
                       fontWeight: activeSectionId === section.id ? '600' : 'normal',
-                      background: 'transparent'
+                      background: activeSectionId === section.id ? 'var(--bg-hover)' : 'transparent',
+                      boxShadow: activeSectionId === section.id ? 'var(--accent-glow)' : 'none'
                     }}
                     onMouseEnter={(e) => {
                       if (activeSectionId !== section.id) {
-                         e.currentTarget.style.background = 'rgba(118,171,174,0.08)';
+                         e.currentTarget.style.background = 'var(--bg-hover)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1080,18 +1347,18 @@ const SessionEditor = () => {
                 )}
               </div>
 
-              <div className="text-[10px] font-bold uppercase tracking-widest mb-1 mt-2" style={{ color: '#76ABAE' }}>Beat Markers</div>
-              <div className="overflow-y-auto space-y-1.5 mb-3 max-h-48 custom-scrollbar">
+              <div className="text-[10px] font-bold uppercase tracking-widest mb-1 mt-2" style={{ color: 'var(--nav-heading)' }}>Beat Markers</div>
+              <div className="overflow-y-auto space-y-1.5 mb-3 max-h-[30vh]">
                 {markers.map((marker, index) => (
                   <div
                     key={index}
                     className="group flex justify-between items-center w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all border border-transparent"
-                    style={{ color: '#31363F', background: 'transparent' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(118,171,174,0.08)'}
+                    style={{ color: 'var(--text-main)', background: 'transparent' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     <span className="cursor-pointer transition-colors" onClick={() => navigateToSection(marker.label, marker.time)}>
-                      <span className="mr-2" style={{ color: '#76ABAE' }}>[{formatTime(marker.time)}]</span>
+                      <span className="mr-2" style={{ color: 'var(--accent-primary)' }}>[{formatTime(marker.time)}]</span>
                       {marker.label}
                     </span>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1126,7 +1393,7 @@ const SessionEditor = () => {
               </div>
               
               <form onSubmit={handleAddMarker} className="flex gap-2 items-center text-sm mb-6">
-                <div className="flex bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/10 rounded-xl p-1 shadow-inner w-full flex-1 transition-all focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:border-indigo-500/50">
+                <div className="flex bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/10 rounded-xl p-1 shadow-inner w-full flex-1 transition-all focus-within:ring-2 focus-within:ring-green-500/30 focus-within:border-green-500/50">
                   <input 
                     type="text" 
                     value={newMarkerTime}
@@ -1178,7 +1445,7 @@ const SessionEditor = () => {
                     <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs tracking-wide">Rhyme Scheme</span>
                     <button 
                       onClick={() => setShowRhymeScheme(!showRhymeScheme)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:focus:ring-offset-slate-900 focus:ring-offset-1 ${showRhymeScheme ? 'bg-teal-500 hover:shadow-[0_0_8px_rgba(20,184,166,0.3)]' : 'bg-slate-300 dark:bg-slate-600'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] dark:focus:ring-offset-slate-900 focus:ring-offset-1 ${showRhymeScheme ? 'bg-[var(--accent-primary)] hover:brightness-110' : 'bg-slate-300 dark:bg-slate-600'}`}
                       role="switch"
                       aria-checked={showRhymeScheme}
                     >
@@ -1229,15 +1496,29 @@ const SessionEditor = () => {
             )}
 
             {/* Existing Sections Workspace (Right Column) */}
-            <div className={`flex flex-col rounded-3xl relative min-w-0 transition-all duration-200 ease-in-out`}>
-              
-              {/* Tabs UI */}
+            <div className={`flex flex-col relative min-w-0 transition-all duration-200 ease-in-out`}>
+
+              {/* Shared Parent Container */}
+              <div className="flex flex-col h-full relative z-0">
+
+              {/* Tab Bar */}
               {!isFocusMode && (
-              <div className="flex items-end overflow-x-auto whitespace-nowrap pt-3 px-4 bg-white/20 dark:bg-slate-800/40 border-b border-slate-200/50 dark:border-white/5 min-h-[56px] relative z-20 rounded-t-3xl custom-scrollbar-horizontal transition-opacity duration-200">
+              <div
+                className="flex items-end flex-wrap relative z-10"
+                style={{
+                  // Tab tray sits directly on top of the editor container
+                  padding: '0 16px',
+                  gap: '4px',
+                  marginBottom: '0', // No gap, let editor pull up
+                  overflow: 'visible',
+                  height: 'auto',
+                  borderBottom: '1px solid var(--tab-container-border)',
+                }}
+              >
                 <DndContext collisionDetection={closestCenter} sensors={sensors} onDragEnd={handleDragEnd}>
                   <SortableContext items={drafts.map((draft, index) => index)} strategy={horizontalListSortingStrategy}>
                     {drafts.map((draft, idx) => (
-                      <SortableTab 
+                      <SortableTab
                         key={idx}
                         id={idx}
                         draft={draft}
@@ -1264,20 +1545,38 @@ const SessionEditor = () => {
                     ))}
                   </SortableContext>
                 </DndContext>
-                <button 
+
+                {/* + Draft action — completely inline with tabs */}
+                <button
                   onClick={() => {
                     const newDraftName = `Draft ${drafts.length + 1}`;
                     setDrafts([...drafts, { id: Math.random().toString(36).substring(2, 9), name: newDraftName, content: '' }]);
                     setActiveDraftIndex(drafts.length);
                   }}
-                  className="shrink-0 px-3 py-2 mb-px ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  className="draft-add shrink-0 flex items-center px-3 py-2.5 outline-none"
                 >
-                  + Draft
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Draft
                 </button>
               </div>
               )}
 
-              <div className={`p-0 flex flex-col flex-1 h-full relative border-t border-transparent transition-all duration-200 ${isFocusMode ? 'bg-[var(--bg-base)]' : ''}`}>
+              {/* Editor Container */}
+              <div
+                className={`flex flex-col flex-1 h-full relative transition-all duration-200`}
+                style={isFocusMode ? {} : {
+                  marginTop: '-1px', // Merge border with tab
+                  zIndex: 1,
+                  background: 'var(--editor-bg)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--editor-shadow)',
+                  border: '1px solid var(--editor-border)',
+                  overflow: 'hidden',
+                }}
+              >
                 <div className="flex justify-between items-center px-6 md:px-8 py-4 border-b border-slate-200/50 dark:border-white/5 transition-opacity duration-200" style={{ background: 'transparent' }}>
                   <div className="flex items-center">
                     <span className="text-xs font-semibold text-indigo-500 dark:text-cyan-400">
@@ -1288,7 +1587,7 @@ const SessionEditor = () => {
                     <button
                       onClick={() => setIsFocusMode(!isFocusMode)}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-                      style={{ border: '1px solid var(--border-subtle)', color: isFocusMode ? 'var(--accent-focus)' : 'var(--text-muted)', background: 'transparent' }}
+                      style={{ border: '1px solid var(--bg-border)', color: isFocusMode ? 'var(--accent-primary)' : 'var(--text-muted)', background: 'transparent' }}
                     >
                       {isFocusMode ? 'Exit Focus' : 'Focus Mode'}
                     </button>
@@ -1363,10 +1662,10 @@ const SessionEditor = () => {
                 </div>
                 <style>{`
                   .cm-section-header {
-                    color: var(--accent-focus);
-                    font-weight: 700;
+                    color: var(--accent-primary);
+                    font-weight: 500;
                     font-family: 'Outfit', sans-serif;
-                    letter-spacing: 0.08em;
+                    letter-spacing: 0.05em;
                     text-transform: uppercase;
                     padding: 4px 8px;
                     margin-left: -8px;
@@ -1377,24 +1676,24 @@ const SessionEditor = () => {
                     opacity: 0.9;
                   }
                   .dark .cm-section-header {
-                    color: var(--accent-focus);
+                    color: var(--accent-primary);
                   }
                   
                   .cm-active-section {
                     background: rgba(64, 138, 113, 0.08);
                     border-radius: 6px;
-                    border-left: 3px solid var(--accent-focus);
+                    border-left: 3px solid var(--accent-primary);
                   }
                   .dark .cm-active-section {
                     background: rgba(64, 138, 113, 0.12);
-                    border-left: 3px solid var(--accent-focus);
+                    border-left: 3px solid var(--accent-primary);
                   }
 
                   .cm-activeLine {
                     background: transparent !important;
                   }
                   .cm-cursor {
-                    border-left-color: var(--accent-focus) !important;
+                    border-left-color: var(--accent-primary) !important;
                     border-left-width: 2px !important;
                   }
                   
@@ -1411,7 +1710,7 @@ const SessionEditor = () => {
                   
                   .cm-rhyme-scheme {
                     font-size: 12px;
-                    color: var(--accent-focus);
+                    color: var(--accent-primary);
                     margin-left: 8px;
                     font-weight: 700;
                     background: rgba(64, 138, 113, 0.1);
@@ -1419,7 +1718,7 @@ const SessionEditor = () => {
                     border-radius: 4px;
                   }
                   .dark .cm-rhyme-scheme {
-                    color: var(--accent-focus);
+                    color: var(--accent-primary);
                     background: rgba(64, 138, 113, 0.15);
                   }
                   
@@ -1445,9 +1744,9 @@ const SessionEditor = () => {
                     background: transparent !important;
                     border-radius: 0;
                     font-family: inherit;
-                    font-size: 1.125rem;
-                    line-height: 1.7;
-                    letter-spacing: 0.3px;
+                    font-size: 15.5px;
+                    line-height: 1.8;
+                    letter-spacing: 0.015em;
                   }
                   .dark .cm-editor {
                     background: transparent !important;
@@ -1464,11 +1763,11 @@ const SessionEditor = () => {
                   }
                   .cm-content {
                     font-size: 17px;
-                    line-height: 1.8;
+                    line-height: 1.7;
                     letter-spacing: 0.01em;
-                    caret-color: var(--accent-focus);
+                    caret-color: var(--accent-primary);
                     margin: 0 !important;
-                    padding: 48px 24px !important;
+                    padding: 24px 28px !important;
                     min-height: 400px;
                     text-align: ${textAlign} !important;
                   }
@@ -1514,74 +1813,33 @@ const SessionEditor = () => {
                     className={`relative z-10 w-full font-mono leading-relaxed text-gray-900 dark:text-white transition-colors`}
                   />
                 </div>
-                
-                {/* Audio Takes Display */}
-                {!isFocusMode && takes.length > 0 && (
-                  <div className="mt-6 border-t border-slate-200/50 dark:border-white/5 pt-6 px-6 pb-6">
-                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <span className="text-lg">🎙️</span> Recorded Takes ({takes.length})
-                    </h3>
-                    <div className="space-y-3">
-                      {takes.map((take, index) => {
-                        const takeIdentifier = take._id || take.id;
-                        return (
-                        <div key={takeIdentifier} className="flex items-center gap-4 bg-white/50 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm transition-all hover:shadow-md">
-                          {editingTakeId === takeIdentifier ? (
-                            <input
-                              autoFocus
-                              type="text"
-                              value={editingTakeName}
-                              onChange={(e) => setEditingTakeName(e.target.value)}
-                              onBlur={() => handleRenameTakeSubmit(takeIdentifier)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRenameTakeSubmit(takeIdentifier);
-                                if (e.key === 'Escape') setEditingTakeId(null);
-                              }}
-                              className="text-sm font-semibold bg-white dark:bg-slate-900 border border-indigo-500 rounded-lg px-3 py-1.5 outline-none min-w-[120px] shadow-inner"
-                            />
-                          ) : (
-                            <span 
-                              className="text-sm font-bold text-slate-700 dark:text-slate-200 min-w-[120px] cursor-text hover:text-indigo-600 dark:hover:text-cyan-400 transition-colors truncate"
-                              onDoubleClick={() => {
-                                setEditingTakeId(takeIdentifier);
-                                setEditingTakeName(take.name || `Take ${index + 1}`);
-                              }}
-                              title="Double click to rename"
-                            >
-                              {take.name || `Take ${index + 1}`}
-                            </span>
-                          )}
-                          
-                          <button
-                            onClick={() => handlePlayTakeSync(takeIdentifier)}
-                            className="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-cyan-400 dark:hover:bg-indigo-500/30 rounded-xl w-10 h-10 flex items-center justify-center transition-all shadow-sm shrink-0"
-                            title="Play synced with beat"
-                          >
-                            ▶
-                          </button>
-                          
-                          <audio data-take-id={takeIdentifier} controls src={take.url} className="h-10 flex-1 outline-none opacity-90 grayscale-[0.2]" />
-                          
-                          {take.isUploading && (
-                             <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest animate-pulse px-2">Uploading...</span>
-                          )}
-                          {take.error && (
-                             <span className="text-xs font-bold text-red-500 uppercase tracking-widest px-2">Failed</span>
-                          )}
-                          
-                          <button
-                            onClick={() => setTakes(takes.filter(t => t._id !== takeIdentifier && t.id !== takeIdentifier))}
-                            className="text-slate-400 hover:bg-red-500 hover:text-white transition-colors h-8 w-8 rounded-full flex justify-center items-center font-bold pb-0.5 ml-2 shrink-0"
-                            title="Delete take"
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      )})}
-                    </div>
-                  </div>
-                )}
               </div>
+              </div>
+
+              {/* Audio Takes Display */}
+              {!isFocusMode && takes.length > 0 && (
+                <div style={{ marginTop: '24px', padding: '24px 32px', borderRadius: '16px', background: 'var(--take-container-bg)', border: '1px solid var(--take-container-border)', boxShadow: 'var(--take-container-shadow)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--take-header-color)', marginBottom: '16px' }}>
+                    Recorded Takes ({takes.length})
+                  </div>
+                  <div className="space-y-[12px]">
+                    {takes.map((take, index) => (
+                      <TakeCard
+                        key={take._id || take.id}
+                        take={take}
+                        index={index}
+                        editingTakeId={editingTakeId}
+                        editingTakeName={editingTakeName}
+                        setEditingTakeName={setEditingTakeName}
+                        handleRenameTakeSubmit={handleRenameTakeSubmit}
+                        setEditingTakeId={setEditingTakeId}
+                        handlePlayTakeSync={handlePlayTakeSync}
+                        onDelete={(takeIdentifier) => setTakes(takes.filter(t => t._id !== takeIdentifier && t.id !== takeIdentifier))}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
           </div>
@@ -1593,3 +1851,4 @@ const SessionEditor = () => {
 };
 
 export default SessionEditor;
+
