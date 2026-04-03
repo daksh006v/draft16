@@ -5,7 +5,7 @@
 
   **The ultimate distraction-free drafting workspace tailored specifically for lyricists and songwriters.**
   
-  [**Visit Live App**](https://draft16.vercel.app/) • [**Report Bug**](#) • [**Request Feature**](#)
+  [**Visit Live App**](https://draft16.vercel.app/) • [**Report Bug**](https://github.com/daksh006v/draft16/issues/new?labels=bug) • [**Request Feature**](https://github.com/daksh006v/draft16/issues/new?labels=enhancement)
 </div>
 
 <br/>
