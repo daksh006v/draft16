@@ -1645,10 +1645,14 @@ const SessionEditor = () => {
                           )}
                         </>
                       ) : (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm" title="Guest users cannot record audio">
+                        <button 
+                          onClick={() => navigate('/signup')}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm hover:bg-amber-500/20 transition-colors cursor-pointer" 
+                          title="Create a free account to unlock recording"
+                        >
                           <Mic2 size={14} className="opacity-70" />
                           <span className="text-[10px] uppercase tracking-wider font-bold">Sign up to Record</span>
-                        </div>
+                        </button>
                       )}
                     </div>
                     <div className="w-[140px]">
