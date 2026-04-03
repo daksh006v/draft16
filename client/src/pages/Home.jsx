@@ -22,10 +22,10 @@ const Home = () => {
   return (
     <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-73px)] bg-[var(--bg-main)]">
       <main className="text-center px-4 z-10 max-w-3xl">
-        <h1 className="font-display text-5xl md:text-7xl font-bold text-[var(--text-main)] mb-6 tracking-tight leading-tight">
+        <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-[var(--text-main)] mb-6 tracking-tight leading-tight">
           Professional songwriting workspace.
         </h1>
-        <p className="text-lg md:text-2xl text-[var(--text-muted)] mb-10 max-w-2xl mx-auto font-sans leading-relaxed">
+        <p className="text-lg md:text-2xl text-[var(--text-muted)] mb-10 w-full max-w-[90%] sm:max-w-[600px] md:max-w-[800px] mx-auto font-sans leading-relaxed">
           The ultimate drafting workspace for lyricists. Write verses, record takes, play beats, and perfect your flow in a distraction-free environment.
         </p>
         

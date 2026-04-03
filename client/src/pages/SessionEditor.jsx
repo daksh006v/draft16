@@ -635,6 +635,7 @@ const SessionEditor = () => {
   const [beatUrl, setBeatUrl] = useState('');
   const [bpm, setBpm] = useState(120);
   const [metronomeOn, setMetronomeOn] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   
   const [isRecording, setIsRecording] = useState(false);
   const [takes, setTakes] = useState([]);
@@ -1176,15 +1177,29 @@ const SessionEditor = () => {
 
 
         <div className="flex justify-between items-center p-4 rounded-lg mb-2 transition-colors" style={{ background: 'var(--bg-surface)', border: '1px solid var(--bg-border)' }}>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="font-semibold transition-colors flex items-center gap-2 text-sm"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-          >
-            <span>&larr;</span> Dashboard
-          </button>
+          <div className="flex items-center gap-2 sm:gap-4">
+            {!isFocusMode && (
+              <button
+                onClick={() => setIsMobileNavOpen(true)}
+                className="lg:hidden p-2 -ml-2 rounded-lg transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-main)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                title="Open Navigator"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+              </button>
+            )}
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="font-semibold transition-colors flex items-center gap-2 text-sm"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <span>&larr;</span> Dashboard
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={exportLyrics}
@@ -1219,12 +1234,12 @@ const SessionEditor = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Name your track..."
-                className="w-full text-3xl md:text-4xl font-display font-extrabold p-0 bg-transparent outline-none placeholder-slate-500 transition-all border-none focus:ring-0"
+                className="w-full text-2xl sm:text-3xl md:text-4xl font-display font-extrabold p-0 bg-transparent outline-none placeholder-slate-500 transition-all border-none focus:ring-0 truncate"
                 style={{ color: 'var(--brand-dark)' }}
               />
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="flex flex-col md:grid md:grid-cols-3 gap-2 md:gap-4">
               <div className="md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat Source</label>
                 <Dropdown
@@ -1312,10 +1327,33 @@ const SessionEditor = () => {
           {/* Lyrics Editor (Workspace) */}
           <div className={`p-6 md:p-8 flex flex-col gap-8 relative transition-all duration-200 ease-in-out ${!isFocusMode ? 'lg:grid lg:grid-cols-[260px_1fr]' : ''}`} style={{ padding: isFocusMode ? '0' : '' }}>
             
-            {/* Section Navigator (Left Column on Desktop, Top on Mobile) */}
+            {/* Section Navigator */}
             {!isFocusMode && (
-            <div className="flex flex-col gap-1 transition-opacity duration-200 w-full lg:pr-4">
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--nav-heading)' }}>Navigator</label>
+              <>
+                {/* Mobile Drawer Backdrop */}
+                {isMobileNavOpen && (
+                  <div 
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+                    onClick={() => setIsMobileNavOpen(false)}
+                  />
+                )}
+                
+                {/* Navigator Container */}
+                <div 
+                  className={`
+                    fixed lg:static inset-y-0 left-0 z-50 w-[280px] lg:w-full h-full lg:h-auto
+                    bg-[var(--bg-main)] lg:bg-transparent border-r border-[var(--bg-border)] lg:border-none
+                    p-6 lg:p-0 flex flex-col gap-1 transition-transform duration-300 ease-in-out
+                    ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                    lg:pr-4 shadow-xl lg:shadow-none
+                  `}
+                >
+                  <div className="flex justify-between items-center mb-4 lg:mb-2" style={{ color: 'var(--nav-heading)' }}>
+                    <label className="block text-xs font-bold uppercase tracking-wider">Navigator</label>
+                    <button className="lg:hidden p-1.5 -mr-1.5 rounded text-[var(--text-muted)] hover:bg-[var(--bg-hover)]" onClick={() => setIsMobileNavOpen(false)}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
               
               <div className="text-[10px] font-bold uppercase tracking-widest mb-1 mt-2" style={{ color: 'var(--nav-heading)' }}>Sections</div>
               <div className="overflow-y-auto space-y-1.5 mb-6 max-h-[30vh]">
@@ -1495,6 +1533,7 @@ const SessionEditor = () => {
                 <div>Characters: {characterCount}</div>
               </div>
             </div>
+            </>
             )}
 
             {/* Existing Sections Workspace (Right Column) */}
@@ -1585,7 +1624,7 @@ const SessionEditor = () => {
                       {isSaving ? '● Auto-saving...' : lastSaved ? '✓ Saved' : ''}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap no-scrollbar max-w-full">
                     <button
                       onClick={() => setIsFocusMode(!isFocusMode)}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
@@ -1605,6 +1644,8 @@ const SessionEditor = () => {
                         ]}
                       />
                     </div>
+
+                    <div className="h-6 w-px" style={{ background: 'var(--bg-border)' }}></div>
 
                     <div className="flex items-center gap-2">
                       {!isGuest ? (

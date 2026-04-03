@@ -18,7 +18,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] p-6 md:p-10" style={{ background: 'var(--bg-main)' }}>
+    <div className="min-h-[calc(100vh-73px)] p-4 md:p-10" style={{ background: 'var(--bg-main)' }}>
       <div className="max-w-6xl mx-auto">
         
         {/* Header Section */}
@@ -101,7 +101,7 @@ const Dashboard = () => {
             <p style={{ color: 'var(--text-muted)' }}>Try adjusting your search query.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {sortedSessions.map((session) => (
               <SessionCard key={session._id} session={session} onDelete={removeSession} />
             ))}

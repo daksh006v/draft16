@@ -26,16 +26,16 @@ const Navbar = () => {
       borderBottom: '1px solid var(--bg-border)',
       color: 'var(--text-main)',
     }}>
-      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center whitespace-nowrap">
         <Link
           to="/"
-          className="font-display transition-opacity hover:opacity-75 flex items-center"
-          style={{ color: 'var(--text-main)', letterSpacing: '-0.05em', fontWeight: 800, fontSize: '28px' }}
+          className="font-display transition-opacity hover:opacity-75 flex items-center text-xl sm:text-[28px]"
+          style={{ color: 'var(--text-main)', letterSpacing: '-0.05em', fontWeight: 800 }}
         >
           Draft<span style={{ color: 'var(--accent-primary)', fontWeight: 800, marginLeft: '0.04em' }}>16</span>
         </Link>
         
-        <div className="flex gap-6 items-center">
+        <div className="flex gap-3 sm:gap-6 items-center">
           {isAuthenticated ? (
             <>
               <Link
@@ -66,7 +66,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/signup"
-                className="text-sm font-medium text-white px-4 py-2 rounded-lg transition-opacity"
+                className="text-xs sm:text-sm font-medium text-white px-3 sm:px-4 py-2 rounded-lg transition-opacity"
                 style={{ background: 'var(--accent-primary)' }}
                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
