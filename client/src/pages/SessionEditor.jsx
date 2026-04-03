@@ -637,6 +637,7 @@ const SessionEditor = () => {
   const [metronomeOn, setMetronomeOn] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isRecordedTakesOpen, setIsRecordedTakesOpen] = useState(false);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   
   const [isRecording, setIsRecording] = useState(false);
   const [takes, setTakes] = useState([]);
@@ -1543,10 +1544,24 @@ const SessionEditor = () => {
               {/* Shared Parent Container */}
               <div className="flex flex-col h-full relative z-0">
 
+              {/* Mobile Draft Switcher Trigger */}
+              {!isFocusMode && (
+                <div className="sm:hidden px-2 pb-2 mt-4 flex items-center">
+                  <button 
+                    onClick={() => setIsBottomSheetOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-all"
+                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-main)', border: '1px solid var(--bg-border)' }}
+                  >
+                    <span className="truncate max-w-[150px]">{drafts[activeDraftIndex]?.name || 'Drafts'}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                </div>
+              )}
+
               {/* Tab Bar */}
               {!isFocusMode && (
               <div
-                className="flex items-end flex-wrap relative z-10"
+                className="hidden sm:flex items-end flex-wrap relative z-10"
                 style={{
                   // Tab tray sits directly on top of the editor container
                   padding: '0 16px',
@@ -1942,6 +1957,103 @@ const SessionEditor = () => {
 
         </div>
       </div>
+
+      {/* Mobile Draft Bottom Sheet */}
+      {isBottomSheetOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end sm:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsBottomSheetOpen(false)}
+          ></div>
+          
+          {/* Sheet */}
+          <div 
+            className="relative w-full shadow-xl flex flex-col max-h-[85vh]"
+            style={{ background: 'var(--bg-main)', borderRadius: '24px 24px 0 0', transform: 'translateY(0)', animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          >
+            <style>{`
+              @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+              }
+            `}</style>
+
+            {/* Grabber */}
+            <div className="w-full flex justify-center py-4 cursor-pointer" onClick={() => setIsBottomSheetOpen(false)}>
+              <div className="w-12 h-1.5 rounded-full" style={{ background: 'var(--bg-border)' }}></div>
+            </div>
+            
+            <div className="px-6 pb-2 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Drafts
+            </div>
+            
+            <div className="overflow-y-auto px-4 pb-8 flex-col space-y-1">
+              {drafts.map((draft, idx) => (
+                <div key={draft.id || idx} className="w-full flex justify-between items-center group rounded-2xl p-1">
+                  <button 
+                    className="flex-1 flex items-center justify-between p-3.5 rounded-xl transition-colors text-left"
+                    style={{ 
+                      background: activeDraftIndex === idx ? 'var(--bg-elevated)' : 'transparent',
+                      color: activeDraftIndex === idx ? 'var(--accent-primary)' : 'var(--text-main)',
+                      fontWeight: activeDraftIndex === idx ? '800' : '600'
+                    }}
+                    onClick={() => {
+                      setActiveDraftIndex(idx);
+                      setIsBottomSheetOpen(false);
+                    }}
+                  >
+                    <span className="truncate text-[15px]">{draft.name}</span>
+                    {activeDraftIndex === idx && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                    )}
+                  </button>
+                  
+                  {/* Delete option for inactive drafts */}
+                  {activeDraftIndex !== idx ? (
+                    <button
+                      className="p-3.5 rounded-xl ml-1 transition-colors"
+                      style={{ color: 'var(--text-muted)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                      onClick={() => {
+                        if(confirm(`Delete '${draft.name}'?`)) {
+                           const newDrafts = drafts.filter((_, idxToRemove) => idx !== idxToRemove);
+                           setDrafts(newDrafts);
+                           if (activeDraftIndex > idx) {
+                             setActiveDraftIndex(activeDraftIndex - 1);
+                           }
+                        }
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    </button>
+                  ) : (
+                    <div className="w-[46px]"></div> /* Placeholder to keep text aligned */
+                  )}
+                </div>
+              ))}
+              
+              <div className="pt-3 pb-2 mt-2 border-t" style={{ borderColor: 'var(--bg-border)' }}>
+                <button
+                  className="w-full text-left p-3.5 rounded-xl text-[15px] font-bold transition-colors flex items-center gap-3"
+                  style={{ color: 'var(--accent-primary)' }}
+                  onClick={() => {
+                    const newDraftName = `Draft ${drafts.length + 1}`;
+                    setDrafts([...drafts, { id: Math.random().toString(36).substring(2, 9), name: newDraftName, content: '' }]);
+                    setActiveDraftIndex(drafts.length);
+                    setIsBottomSheetOpen(false);
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Draft
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
