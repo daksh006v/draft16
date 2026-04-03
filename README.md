@@ -30,7 +30,6 @@ With a deeply considered, distraction-free UI inspired by premium tools like Not
 
 ## 📸 Interface Previews
 
-*(Add your screenshots here by replacing the placeholder links. We recommend placing your image files in a `/screenshots` folder.)*
 
 <div align="center">
   <img src="./screenshots/landing.png" alt="Draft16 Landing Page" width="800" />
