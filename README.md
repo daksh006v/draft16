@@ -33,13 +33,23 @@ With a deeply considered, distraction-free UI inspired by premium tools like Not
 *(Add your screenshots here by replacing the placeholder links. We recommend placing your image files in a `/screenshots` folder.)*
 
 <div align="center">
-  <img src="https://via.placeholder.com/800x450/111827/5f8f8b?text=Landing+Page+Screenshot" alt="Draft16 Landing Page" width="800" />
+  <img src="./screenshots/landing.png" alt="Draft16 Landing Page" width="800" />
   <p><em>The intuitive and welcoming landing portal.</em></p>
   
   <br/>
+
+  <img src="./screenshots/dashboard-dark.png" alt="Draft16 Dashboard (Dark Mode)" width="800" />
+  <p><em>Managing your sessions and creative projects.</em></p>
   
-  <img src="https://via.placeholder.com/800x450/111827/5f8f8b?text=Session+Editor+Screenshot" alt="Draft16 Session Editor" width="800" />
-  <p><em>The core editing environment featuring the integrated BeatPlayer.</em></p>
+  <br/>
+
+  <img src="./screenshots/editor.png" alt="Draft16 Session Editor" width="800" />
+  <p><em>The core editing environment featuring the integrated BeatPlayer and syllable counter.</em></p>
+
+  <br/>
+
+  <img src="./screenshots/dashboard-light.png" alt="Draft16 Dashboard (Light Mode)" width="800" />
+  <p><em>Seamless light mode support for different studio environments.</em></p>
 </div>
 
 ---
