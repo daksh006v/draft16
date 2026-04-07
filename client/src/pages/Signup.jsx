@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signup, guestLogin } from '../services/authService';
 import { setToken } from '../utils/auth';
+import { useServerWarmup } from '../hooks/useServerWarmup';
+import ServerWarmingOverlay from '../components/ui/ServerWarmingOverlay';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -9,7 +11,11 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [warmingUp, setWarmingUp] = useState(false);
   const navigate = useNavigate();
+
+  // Silently ping backend on mount to pre-warm the Render server
+  useServerWarmup();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,6 +49,8 @@ const Signup = () => {
   };
 
   return (
+    <>
+    <ServerWarmingOverlay visible={warmingUp} onCancel={() => setWarmingUp(false)} />
     <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-main)' }}>
       <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: '12px', padding: '32px' }}>
         <h2 className="font-display text-3xl font-bold text-center mb-8 tracking-tight" style={{ color: 'var(--text-main)' }}>Create Account</h2>
@@ -119,7 +127,12 @@ const Signup = () => {
         {/* Google Login Button */}
         <button
           id="google-login-btn"
-          onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'https://draft16.onrender.com/api'}/auth/google`}
+          onClick={() => {
+            setWarmingUp(true);
+            setTimeout(() => {
+              window.location.href = `${import.meta.env.VITE_API_URL || 'https://draft16.onrender.com/api'}/auth/google`;
+            }, 300);
+          }}
           className="w-full py-3 rounded-lg font-medium flex items-center justify-center gap-3 transition-all"
           style={{
             background: 'var(--bg-main)',
@@ -179,6 +192,7 @@ const Signup = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

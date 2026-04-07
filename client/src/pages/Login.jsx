@@ -2,13 +2,19 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, guestLogin } from '../services/authService';
 import { setToken } from '../utils/auth';
+import { useServerWarmup } from '../hooks/useServerWarmup';
+import ServerWarmingOverlay from '../components/ui/ServerWarmingOverlay';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [warmingUp, setWarmingUp] = useState(false);
   const navigate = useNavigate();
+
+  // Silently ping backend on mount to pre-warm the Render server
+  useServerWarmup();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +33,11 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'https://draft16.onrender.com/api'}/auth/google`;
+    setWarmingUp(true);
+    // Small delay so overlay renders before the redirect takes over
+    setTimeout(() => {
+      window.location.href = `${import.meta.env.VITE_API_URL || 'https://draft16.onrender.com/api'}/auth/google`;
+    }, 300);
   };
 
   const handleGuestLogin = async () => {
@@ -46,6 +56,8 @@ const Login = () => {
   };
 
   return (
+    <>
+    <ServerWarmingOverlay visible={warmingUp} onCancel={() => setWarmingUp(false)} />
     <div className="flex justify-center items-center min-h-[calc(100vh-73px)] p-6" style={{ background: 'var(--bg-main)' }}>
       <div className="w-full max-w-md" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: '12px', padding: '32px' }}>
         <h2 className="font-display text-3xl font-semibold text-center mb-8 tracking-tight" style={{ color: 'var(--text-main)' }}>Welcome Back</h2>
@@ -168,6 +180,7 @@ const Login = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 
