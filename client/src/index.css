@@ -26,13 +26,20 @@
   --shadow-hover:  0 8px 28px rgba(0, 0, 0, 0.10);
   --accent-glow:   0 0 0 2px rgba(47, 122, 107, 0.15);
 
-  --take-bg:       rgba(0, 0, 0, 0.02);
-  --take-bg-playing:rgba(0, 0, 0, 0.04);
-  --take-border:   rgba(0, 0, 0, 0.05);
-  --take-btn-bg:   rgba(0, 0, 0, 0.06);
-  --take-btn-hover:rgba(0, 0, 0, 0.12);
-  --take-text:     #111111;
-  --take-time:     rgba(0, 0, 0, 0.5);
+  --take-bg:            rgba(0, 0, 0, 0.02);
+  --take-bg-playing:    rgba(0, 0, 0, 0.04);
+  --take-bg-hover:      rgba(0, 0, 0, 0.03);
+  --take-border:        rgba(0, 0, 0, 0.06);
+  --take-btn-bg:        rgba(0, 0, 0, 0.06);
+  --take-btn-hover:     rgba(0, 0, 0, 0.12);
+  --take-text:          #111111;
+  --take-time:          rgba(0, 0, 0, 0.45);
+  --take-progress-bg:   rgba(0, 0, 0, 0.08);
+  --take-header-color:  #6b7280;
+
+  --take-container-bg:      #FFFFFF;
+  --take-container-border:  rgba(0, 0, 0, 0.06);
+  --take-container-shadow:  0 4px 12px rgba(0, 0, 0, 0.04);
 
   --editor-bg:     var(--bg-surface);
   --editor-bg-solid:var(--bg-surface);
