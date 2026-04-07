@@ -2058,7 +2058,6 @@ const SessionEditor = () => {
                         setEditingTakeId={setEditingTakeId}
                         handlePlayTakeSync={handlePlayTakeSync}
                         onDelete={(takeIdentifier) => setTakes(takes.filter(t => t._id !== takeIdentifier && t.id !== takeIdentifier))}
-                        handleSetRecordingMode={handleSetRecordingMode}
                         recordingMode={recordingMode}
                       />
                     ))}
