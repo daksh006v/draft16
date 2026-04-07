@@ -37,9 +37,9 @@
   --take-progress-bg:   rgba(0, 0, 0, 0.08);
   --take-header-color:  #6b7280;
 
-  --take-container-bg:      #FFFFFF;
-  --take-container-border:  rgba(0, 0, 0, 0.06);
-  --take-container-shadow:  0 4px 12px rgba(0, 0, 0, 0.04);
+  --take-container-bg:      var(--editor-bg);
+  --take-container-border:  var(--editor-border);
+  --take-container-shadow:  0 6px 18px rgba(0, 0, 0, 0.03);
 
   --editor-bg:     var(--bg-surface);
   --editor-bg-solid:var(--bg-surface);
@@ -76,10 +76,10 @@
   --shadow-hover:  0 8px 28px rgba(0, 0, 0, 0.5);
   --accent-glow:   0 0 0 2px rgba(34, 197, 94, 0.25);
   
-  --take-container-bg: #ffffff;
-  --take-container-border: rgba(0, 0, 0, 0.06);
-  --take-container-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  --take-header-color: #6b7280;
+  --take-container-bg: var(--editor-bg);
+  --take-container-border: var(--editor-border);
+  --take-container-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --take-header-color: rgba(255, 255, 255, 0.8);
 
   --take-bg:       transparent;
   --take-bg-playing:rgba(0, 0, 0, 0.02);
@@ -107,9 +107,7 @@
   --nav-item:      rgba(255, 255, 255, 0.6);
   --nav-active:    #ffffff;
 
-  --take-container-bg: #0f172a;
-  --take-container-border: rgba(255, 255, 255, 0.06);
-  --take-header-color: rgba(255, 255, 255, 0.8);
+
 
   --take-bg:       #121826;
   --take-bg-playing: #121826;
